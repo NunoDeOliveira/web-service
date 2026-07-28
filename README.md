@@ -1,11 +1,13 @@
 # Web Server
 
 Administration, deployment, and monitoring of a public NGINX server on Ubuntu Server 24.04 LTS for web services.
+
 ---
 
 ## Project Goal
 
 Implement and operate a secure Linux web server, applying administration skills based on LPIC-1 and LPIC-2 and official documentation, and validating each requirement through reproducible tests.
+
 ---
 
 ## Requirements
@@ -15,9 +17,10 @@ Implement and operate a secure Linux web server, applying administration skills 
 ## Architecture
 
 Internet → Firewall cloud → UFW → Ubuntu → NGINX → Web page
+
 ---
 
-##Tecnical decisions
+## Tecnical decisions
 
 ---
 
