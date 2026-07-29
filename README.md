@@ -6,6 +6,12 @@ The project applies Linux system administration, networking, security, service m
 
 ---
 
+## Table of Contents
+
+
+
+---
+
 ## 1. Technical Goal
 
 Transform a clean Ubuntu Server virtual machine into an operational, secure, maintainable, and verifiable web server.
@@ -26,17 +32,21 @@ The final system must:
 
 ### Project Scope
 
-| Component             | Implementation          | Purpose                            |
-| --------------------- | ----------------------- | ---------------------------------- |
-| Operating system      | Ubuntu Server 24.04 LTS | Base operating environment         |
-| Remote administration | OpenSSH                 | Secure administrative access       |
-| Host firewall         | UFW                     | Local network traffic filtering    |
-| Web server            | NGINX                   | Website publication                |
-| Service management    | systemd                 | Service startup and supervision    |
-| Logging               | journald and NGINX logs | Audit and troubleshooting          |
-| TLS                   | To be documented        | Encrypted web traffic              |
-| Backup                | To be documented        | Configuration and content recovery |
-| Monitoring            | To be documented        | Availability and resource checks   |
+| Area | Included work |
+|---|---|
+| Operating system | Ubuntu Server installation and base configuration |
+| System administration | Users, groups, privileges, packages, processes, and systemd |
+| Remote administration | OpenSSH configuration and key-based access |
+| Networking | Hostname, addressing, DNS resolution, ports, and connectivity |
+| Firewall | Cloud firewall and local UFW rules |
+| Web service | NGINX installation, configuration, and content publication |
+| Transport security | TLS configuration |
+| File permissions | Ownership and permissions for configuration and web content |
+| Logging | NGINX logs, system logs, and log inspection |
+| Updates | Package and security update management |
+| Monitoring | CPU, memory and bandwidth usage |
+| Backups | Designing a suitable backup schedule |
+| Validation | Positive and negative tests with stored evidence |
 
 
 ### Main Requirements
@@ -44,52 +54,69 @@ The final system must:
 | ID | Requirement | Validation |
 |---|---|---|
 | WEB-01 | The server shall publish the website through NGINX. | HTTP request test |
-| WEB-02 | The public website shall be accessible through HTTPS. | TLS and `curl` test |
-| SSH-01 | The server shall support secure remote administration. | SSH connection test |
+| WEB-02 | The public website must be accessible via HTTPS. | TLS and `curl` test |
+| SSH-01 | The server must support secure remote administration. | SSH connection test |
 | FW-01 | Only explicitly authorized ports shall accept incoming traffic. | UFW, cloud firewall, and port scan |
 | IAM-01 | Administrative and web content permissions shall follow least privilege. | User, group, and permission inspection |
-| LOG-01 | The server shall record web access, errors, and relevant system events. | Log inspection |
-| OPS-01 | Required services shall start automatically after a reboot. | Reboot and systemd test |
+| LOG-01 | The server will log web access, errors, and relevant system events. | Log inspection |
+| OPS-01 | The required services will start automatically after a restart. | Reboot and systemd test |
 | UPD-01 | The operating system shall have a documented update procedure. | Package and update inspection |
 | REC-01 | Web content and critical configuration shall be recoverable from backup. | Restoration test |
 
 Detailed requirements and acceptance criteria:
 
-[`docs/requirements.md`](docs/requirements.md)
+[docs/requirements.md](docs/requirements.md)
 
 ---
 
 ## 3. Architecture
 
-Internet → Firewall cloud → UFW → Ubuntu → NGINX → Web page
+Internet → UFW → Ubuntu → NGINX → Web page
 
 ![Architecture](docs/architecture.png)
 
 ---
 
-## 4. Implemented System
+## 4.  Project Phases
 
+| Phase | Objective | Main deliverable | Status |
+|---|---|---|---|
+| 0. Design | Define scope, requirements and architecture | Requirements and architecture documents | Completed |
+| 1. Operating System | Deploy and configure the Ubuntu Server VM | Operational base system | Pending |
+| 2. Network Configuration | Configure hostname, addressing, DNS and connectivity | Functional network configuration | Pending |
+| 3. Administration and SSH | Configure users, privileges and secure remote access | Verified administrative access | Pending |
+| 4. Security | Configure firewall, permissions and update policy | Reduced attack surface | Pending |
+| 5. Web Service and TLS | Deploy NGINX and enable HTTPS | Secure published website | Pending |
+| 6. Operations and Recovery | Configure logging, monitoring and backups | Maintainable and recoverable service | Pending |
+| 7. Validation | Execute tests and collect evidence | Verified requirements and evidence | Pending |
 
-
-
-## 5. Technical Decisions
-
-This section records the principal decisions and their technical justification.
-
-| Decision                | Selected option         | Rationale        | Source                             |
-| ----------------------- | ----------------------- | ---------------- | ---------------------------------- |
-| Operating system        | Ubuntu Server 24.04 LTS | To be documented | Ubuntu documentation               |
-| Web server              | NGINX                   | To be documented | NGINX documentation                |
-| Deployment model        | Single virtual machine  | To be documented | Project constraint                 |
-| Network filtering       | Cloud firewall and UFW  | To be documented | Cloud and Ubuntu documentation     |
-| Administrative access   | OpenSSH                 | To be documented | OpenSSH and Ubuntu documentation   |
-| User and group model    | To be defined           | To be documented | Ubuntu documentation               |
-| Web directory structure | To be defined           | To be documented | FHS and Ubuntu/NGINX documentation |
-| TLS management          | To be defined           | To be documented | TLS provider documentation         |
+Detailed project plan: [`docs/project-plan.md`](docs/project-plan.md)
 
 ---
 
-## 6. Tests and Evidence
+## 5. Implemented System
+
+
+---
+
+## 6. Technical Decisions
+
+This section records the principal decisions and their technical justification.
+
+| Decision                | Selected option         | Source                             |  Reason        |
+| ----------------------- | ----------------------- | ---------------------------------- | -------------- |
+| Operating system        | Ubuntu Server 24.04 LTS | Ubuntu documentation               |  |
+| Web server              | NGINX                   | NGINX documentation                |  |
+| Deployment model        | Single virtual machine  | Project constraint                 |  |
+| Network filtering       | Cloud firewall and UFW  | Cloud and Ubuntu documentation     |  |
+| Administrative access   | OpenSSH                 | OpenSSH and Ubuntu documentation   |  |
+| User and group model    | To be defined           | Ubuntu documentation               |  |
+| Web directory structure | To be defined           | FHS and Ubuntu/NGINX documentation |  |
+| TLS management          | To be defined           | TLS provider documentation         |  |
+
+---
+
+## 7. Tests and Evidence
 
 Each requirement is validated through a reproducible test.
 
@@ -103,11 +130,10 @@ Each requirement is validated through a reproducible test.
 | OPS-01      | Restart the VM                         | Required services start automatically | `evidence/systemd/`  | Pending |
 | REC-01      | Restore configuration and content      | Service returns to its expected state | `evidence/recovery/` | Pending |
 
-
 ---
 
 
-## Troubleshooting
+## 8. Troubleshooting
 
 This section contains only incidents that actually occurred during the implementation and validation of the server.
 
@@ -117,7 +143,7 @@ This section contains only incidents that actually occurred during the implement
 
 Detailed troubleshooting records:
 
-docs/troubleshooting.md
+[troubleshooting.md](docs/troubleshooting.md)
 
 ---
 
