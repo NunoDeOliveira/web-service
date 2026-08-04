@@ -125,13 +125,13 @@ The web server was deployed on a Linux virtual machine with the following specif
 
 The virtual machine runs on a KVM hypervisor and is managed through virt-manager, a graphical interface for libvirt. This platform was selected because of its integration with the Ubuntu 24.04 LTS host system. The installed operating system, kernel, architecture and virtualization environment were verified using `hostnamectl`.
 
-![Show characteristcs.png](docs/hostnamectl.png)
+![hostnamectl.png](docs/hostnamectl.png)
 
 During installation, the 25 GiB virtual disk /dev/vda was manually partitioned using GPT. A 1 MiB BIOS boot partition was created for GRUB, followed by a separate 1 GiB ext4 partition mounted at /boot.
 
 The remaining disk space was assigned to an LVM physical volume. LVM was used to create logical volumes for the root filesystem /, the variable-data directory /var and swap. Separating /var limits the impact that uncontrolled growth of logs and other variable data could have on the root filesystem. Approximately 4 GiB were left free in the volume group for future expansion. 
 
-![Show partitions.png](docs/lsblk-main-comand.png)
+![lsblk main comand.png](docs/lsblk-main-comand.png)
 
 
 
