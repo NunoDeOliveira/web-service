@@ -1,6 +1,11 @@
 # Web Server
 
-This project involves the deployment and administration of a production-ready Linux web server in the cloud. The server represents part of the infrastructure for a web application.
+![Ubuntu](https://img.shields.io/badge/Ubuntu-24.04_LTS-E95420)
+![Nginx](https://img.shields.io/badge/NGINX-latest-009639)
+![License](https://img.shields.io/badge/License-MIT-blue)
+![Status](https://img.shields.io/badge/Status-In_Progress-yellow)
+
+This project involves the deployment and administration of a production-ready Linux web server, provisioned in a virtualized environment and designed for cloud deployment. The server represents part of the infrastructure for a web application.
 
 My role is Systems and Network Administrator. My responsibility consists of provisioning a secure server so that the development team can develop the web application without having to manage the infrastructure.
 
@@ -47,7 +52,7 @@ This approach provides a base for defining the requierements necesary for an Web
 ---
 
 
-## 2. Requirements
+## 2. Requirements Web Server
 
 As a result of the research described in the previous section, a set of system and network requirements was extracted from the selected security references. The complete requirement selected, including and their are available here:
 
@@ -84,16 +89,11 @@ The table below presents the main requirements selected for the design, implemen
 ---
 
 
-##3. Architecture & Design
+## 3. Architecture & Design
 
 Internet → UFW → Ubuntu → NGINX → Web page
 
 ![Architecture](docs/architecture.png)
-
----
-
-
-## 4. Technical Decisions
 
 This section records the principal decisions and their technical justification.
 
@@ -111,25 +111,46 @@ This section records the principal decisions and their technical justification.
 ---
 
 
-##5. Phases of implementation
+## 4. Implementation Phases
 
-| Phase | Objective | Main deliverable | Status |
-|---|---|---|---|
-| 0. Design | Define scope, requirements and architecture | Requirements and architecture documents | Completed |
-| 1. Operating System | Deploy and configure the Ubuntu Server VM | Operational base system | Pending |
-| 2. Network Configuration | Configure hostname, addressing, DNS and connectivity | Functional network configuration | Pending |
-| 3. Administration and SSH | Configure users, privileges and secure remote access | Verified administrative access | Pending |
-| 4. Security | Configure firewall, permissions and update policy | Reduced attack surface | Pending |
-| 5. Web Service and TLS | Deploy NGINX and enable HTTPS | Secure published website | Pending |
-| 6. Operations and Recovery | Configure logging, monitoring and backups | Maintainable and recoverable service | Pending |
-| 7. Validation | Execute tests and collect evidence | Verified requirements and evidence | Pending |
+### 1. Operating System Installation
 
-Detailed project plan: [`docs/project-plan.md`](docs/project-plan.md)
+The web server was deployed on a Linux virtual machine with the following specifications:
+
+- Operating System: Ubuntu Server 24.04 LTS
+- Virtual processors: 2 vCPU
+- RAM: 4 GiB
+- Storage: 25 GiB virtual disk
+- Firmware: BIOS
+
+The virtual machine runs on a KVM hypervisor and is managed through virt-manager, a graphical interface for libvirt. This platform was selected because of its integration with the Ubuntu 24.04 LTS host system. The installed operating system, kernel, architecture and virtualization environment were verified using `hostnamectl`.
+
+![Show characteristcs.md](docs/hostnamectl.png)
+
+During installation, the 25 GiB virtual disk /dev/vda was manually partitioned using GPT. A 1 MiB BIOS boot partition was created for GRUB, followed by a separate 1 GiB ext4 partition mounted at /boot.
+
+The remaining disk space was assigned to an LVM physical volume. LVM was used to create logical volumes for the root filesystem /, the variable-data directory /var and swap. Separating /var limits the impact that uncontrolled growth of logs and other variable data could have on the root filesystem. Approximately 4 GiB were left free in the volume group for future expansion. 
+
+![Show partitions.md](docs/lsblk-main-comand.png)
+
+
+
+### 2. Base System Administration and Access Control
+
+### 3. Network Configuration
+
+### 4. Remote Administration and Server Hardening
+
+### 5. Web Service Deployment and TLS
+
+### 6. Operations, Monitoring and Recovery
+
+### 7. Automation and Cloud Deployment
 
 ---
 
 
-##6. Quick Start
+## 5. Quick Start
 
 
 
@@ -146,12 +167,12 @@ This section contains only incidents that actually occurred during the implement
 
 Detailed troubleshooting records:
 
-[troubleshooting.md](docs/troubleshooting.md)
+![troubleshooting.md](docs/troubleshooting.md)
 
 ---
 
 
-##8. Official References
+## 7. Official References
 
 - IT-Grundschutz Compendium of the 2022 edition: 
 https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/Grundschutz/Internationa?__blob=publicationFile&v=2 
@@ -162,8 +183,11 @@ https://www.ccn-cert.cni.es/es/series-ccn-stic/guias-de-acceso-publico-ccn-stic/
 - Guía de Seguridad de las TIC CCN-STIC-812. GUÍA DE SEGURIDAD EN ENTORNOS Y APLICACIONES WEB:
 https://imaginecloud.es/media/attachments/2024/06/16/812-entornos_y_aplicaciones_web.pdf
 
-- Linux Filesystem Hierarchy Standard:
-https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.pdf
+- LPI-Learning-Material-101-500: 
+
+
+- LPI-Learning-Material-102-500:
+
 
 - Ubuntu Server documentation:
 https://ubuntu.com/server/docs/
@@ -183,6 +207,11 @@ https://www.openssh.org/manual.html
 - OWASP HTTP Security Response Headers guidance.
 
 
+
+- Linux Filesystem Hierarchy Standard:
+https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.pdf
+
+- Ubuntu installation documentation. Autoinstall quick start. Available in: https://canonical-subiquity.readthedocs-hosted.com/en/latest/howto/autoinstall-quickstart.html   
 
 https://www.digitalocean.com/community/tutorials/apache-vs-nginx-practical-considerations
 
