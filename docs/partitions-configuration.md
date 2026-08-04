@@ -2,7 +2,7 @@
 
 El disco virtual `/dev/vda`, de 25 GiB, se configuró manualmente mediante una tabla de particiones GPT y LVM. La siguiente captura muestra el diseño definido antes de confirmar la instalación:
 
-![Storage Configuration](docs/storage-configuration.png)
+![Storage Configuration](screenshots/storage-configuration.png)
 
 En primer lugar, GPT divide `/dev/vda` en tres particiones físicas:
 
@@ -14,7 +14,7 @@ En primer lugar, GPT divide `/dev/vda` en tres particiones físicas:
 
 La estructura física se valida con:
 
-![Table of partitions](docs/fdisk-dev-vda.png)
+![Table of partitions](screenshots/fdisk-dev-vda.png)
 
 
 
@@ -30,11 +30,11 @@ Sobre `/dev/vda3` se creó el grupo de volúmenes `vg-ubuntu`. Dentro de él se 
 
 A continuación muestra la configuración de LVM y la activación de swap se muestra en las siguientes captura:
 
-![Show swap](docs/lvm-pvs-vgs-lvs.png)
+![Show swap](screenshots/lvm-pvs-vgs-lvs.png)
 
 La captura confirma la configuración de LVM: la partición `/dev/vda3` se utiliza como volumen físico del grupo `vg-ubuntu`, con una capacidad aproximada de 24 GiB. Dentro del grupo se crearon tres volúmenes lógicos: `lv-root` de 10 GiB, `lv-var` de 8 GiB y `lv-swap` de 2 GiB. Además, quedan aproximadamente 4 GiB libres para futuras ampliaciones.
 
-![Show swap](docs/swap-&-free.png)
+![Show swap](screenshots/swap-&-free.png)
 
 La captura confirma que el volumen de swap de 2 GiB está activo como `/dev/dm-2` y que, en ese momento, no estaba siendo utilizado. El comando `free -h` muestra además que la máquina dispone de aproximadamente 3,7 GiB de RAM, de los cuales solo se usan unos 410 MiB, por lo que el sistema mantiene suficiente memoria disponible y no necesita recurrir al espacio de intercambio.
 
