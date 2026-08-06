@@ -3,7 +3,7 @@
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-24.04_LTS-E95420)
 ![Nginx](https://img.shields.io/badge/NGINX-latest-009639)
 ![License](https://img.shields.io/badge/License-MIT-blue)
-![Status](https://img.shields.io/badge/Status-In_Progress-yellow)
+![Status](https://img.shields.io/badge/Status-In_Progress...-yellow)
 
 This project involves the deployment and administration of a production-ready Linux web server, provisioned in a virtualized environment and designed for cloud deployment. The server represents part of the infrastructure for a web application.
 
@@ -24,14 +24,13 @@ Finally, the server is also tested against various failure scenarios, which are 
 ## Table of Contents
 
 1. [Methodology & Source Selection](#1-methodology--source-selection)
-2. [Requirements](#2-requirements)
+2. [Requirements of Web Server](#2-requirements-of-web-server)
 3. [Architecture & Design](#3-architecture--design)
-4. [Technical Decisions](#4-technical-decisions)
-5. [Phases of implementation](#5-phases-of-implementation)
-6. [Quick Start](#6-quick-start)
-7. [Troubleshooting & Controlled Failure Scenarios](#7-troubleshooting--controlled-failure-scenarios)
-8. [Lessons Learned](#8-lessons-learned)
-9. [Official References](#9-official-references)
+4. [Phases of implementation](#5-phases-of-implementation)
+5. [Quick Start](#6-quick-start)
+6. [Operations, Monitoring, Troubleshooting & Controlled Failure Scenarios](#6-operation-monitoring-troubleshooting--controlled-failure-scenarios)
+7. [Automation and Cloud Deployment](#7-automation-and-cloud-deployment)
+8. [Official References](#9-official-references)
 
 ---
 
@@ -52,7 +51,7 @@ This approach provides a base for defining the requierements necesary for an Web
 ---
 
 
-## 2. Requirements Web Server
+## 2. Requirements of Web Server
 
 As a result of the research described in the previous section, a set of system and network requirements was extracted from the selected security references. The complete requirement selected, including and their are available here:
 
@@ -113,7 +112,7 @@ This section records the principal decisions and their technical justification.
 
 ## 4. Implementation Phases
 
-### 1. Operating System Installation
+### Operating System Installation
 
 The web server was deployed on a Linux virtual machine with the following specifications:
 
@@ -134,18 +133,80 @@ The remaining disk space was assigned to an LVM physical volume. LVM was used to
 ![lsblk main comand.png](screenshots/lsblk-main-comand.png)
 
 
+### Base System Configuration
 
-### 2. Base System Administration and Access Control
+The objetive of this parte phase is...................  
 
-### 3. Network Configuration
+**1. Package update and package-management validation.**
+Before starting to install any services, it is advisable to update packeges using the Advanced Package Tool (APT). The utility used is:
 
-### 4. Remote Administration and Server Hardening
+```bash
+sudo apt-get update && sudo apt-get upgrade
+```
 
-### 5. Web Service Deployment and TLS
+The folloing command is used to check for the new updates; in this case, 4 updates are pending.
 
-### 6. Operations, Monitoring and Recovery
+![List packets](screenshots/list-packets.png)
 
-### 7. Automation and Cloud Deployment
+Fix these conflicts by running `sudo apt-get dist-upgrade` Checking again:
+
+![list upgradable](screenshots/list-upgradable.png)
+
+
+**2. System identity, timezone and locale configuration**
+
+In this step the time zone is configured. Even though that configuration it may seem little useful, however, taht configuration it is of the greate importance
+
+| User | Gropup |                                    |          |
+| ---- | ------------------ | ---------------------------------- | -------------- |
+| admin     |                    |                                    |                |
+
+
+En este paso se configurar la zona horaria. A pesar de que esta configuración pueda parecer poco util, en realidad es de gran importancia para la seguridad y auditoria. Por una parte, los logs dependen de que las marcas de tiempo sean precisas y por otra parte, proporciona consistencia en los servicios y protocolos de red. 
+
+The command used to list the complete horarie zone and for change the correct region are:
+
+```bash
+timedatectl list-timezones
+```
+The command used to set up the region is:
+
+```bash
+timedatectl set-timezone Europe/Madrid
+```
+Checking the correct
+
+![timedatectl-locale-a](screenshots/timedatectl-locale-a2.png)
+
+**3. Account defaults and role design.**
+Revisar /etc/login.defs y /etc/skel. Definir los roles de administrador, desarrollador y operador. 107.1
+
+se describe principalmente el sistema de permisos estándar de Linux, que es un tipo de Control de Acceso Discrecional (DAC). En este modelo, cada archivo tiene un propietario y un grupo, y es el propietario quien decide qué permisos (lectura, escritura, ejecución) otorga a los demás.
+
+
+
+
+**4. User, group and credential management.**
+Crear usuarios y grupos, asignar shell, directorios personales y pertenencia a grupos. Gestionar contraseñas, caducidad, bloqueo y desbloqueo. 107.1
+
+**5. Sudo privilege delegation and filesystem permissions.**
+Delegar privilegios con sudo y /etc/sudoers.d/. Crear directorios compartidos y aplicar chown, chgrp, chmod, umask y SGID. 110.1, 104.5
+
+**6. Systemd service review and final validation.**
+Revisar el target y los servicios habilitados con systemctl. Validar usuarios, grupos, permisos, sudo, hora, locale y servicios. 101.3
+
+
+### Network Configuration
+
+
+
+### Remote Administration and Server Hardening
+
+
+
+### Web Service Deployment and TLS
+
+
 
 ---
 
@@ -157,7 +218,7 @@ The remaining disk space was assigned to an LVM physical volume. LVM was used to
 ---
 
 
-## 7. Troubleshooting & Controlled Failure Scenarios
+## 6. Operation, Monitoring, Troubleshooting & Controlled Failure Scenarios
 
 This section contains only incidents that actually occurred during the implementation and validation of the server.
 
@@ -172,7 +233,14 @@ Detailed troubleshooting records:
 ---
 
 
-## 7. Official References
+### 7. Automation and Cloud Deployment
+
+
+
+---
+
+
+## 8. Official References
 
 - IT-Grundschutz Compendium of the 2022 edition: 
 https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/Grundschutz/Internationa?__blob=publicationFile&v=2 
@@ -205,6 +273,9 @@ https://www.openssh.org/manual.html
 - OWASP TLS guidance.
 
 - OWASP HTTP Security Response Headers guidance.
+
+- Ubuntu installation documentation. Creating autoinstall configuration: 
+https://canonical-subiquity.readthedocs-hosted.com/en/latest/tutorial/creating-autoinstall-configuration.html?utm_source=chatgpt.com
 
 
 
