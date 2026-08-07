@@ -157,9 +157,11 @@ Fix these conflicts by running `sudo apt-get dist-upgrade` Checking again:
 
 In this step the time zone is configured. Even though that configuration it may seem little useful, however, taht configuration it is of the greate importance
 
-| User | Gropup |                                    |          |
-| ---- | ------------------ | ---------------------------------- | -------------- |
-| admin     |                    |                                    |                |
+| User | Gropup | Group |  |
+| ---- | ------ | ----- | ----- |
+| nuno | admin |  |  |
+| dev | developers |  |  |
+| ops | operators |  |  |
 
 
 En este paso se configurar la zona horaria. A pesar de que esta configuración pueda parecer poco util, en realidad es de gran importancia para la seguridad y auditoria. Por una parte, los logs dependen de que las marcas de tiempo sean precisas y por otra parte, proporciona consistencia en los servicios y protocolos de red. 
@@ -275,7 +277,7 @@ https://www.openssh.org/manual.html
 - OWASP HTTP Security Response Headers guidance.
 
 - Ubuntu installation documentation. Creating autoinstall configuration: 
-https://canonical-subiquity.readthedocs-hosted.com/en/latest/tutorial/creating-autoinstall-configuration.html?utm_source=chatgpt.com
+https://canonical-subiquity.readthedocs-hosted.com/en/latest/tutorial/creating-autoinstall-configuration.html
 
 
 
