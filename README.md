@@ -46,7 +46,7 @@ The methodology used in this project is as follows:
 5. The implementation is validated through functional, security, and failure-recovery tests. The results are recorded as evidence.
 6. Finally, the server is deployed in a cloud IaaS environment and compared with the local implementation to verify its reproducibility.
 
-This approach provides a base for defining the requierements necesary for an Web Server from the selected rsources. It also, provides clear criteria for justify the design decisions. The technologies used are selected to satisfy the defined requirements.  
+This approach provides a base for defining the requierements necesary for an Web Server from the selected rsources. It also, provides clear criteria for justify the design decisions. The technologies used are selected to satisfy the defined requirements.
 
 ---
 
@@ -126,6 +126,8 @@ The virtual machine runs on a KVM hypervisor and is managed through virt-manager
 
 ![hostnamectl.png](screenshots/hostnamectl.png)
 
+The Static hostname mean that the identity of server y persistent. 
+
 During installation, the 25 GiB virtual disk /dev/vda was manually partitioned using GPT. A 1 MiB BIOS boot partition was created for GRUB, followed by a separate 1 GiB ext4 partition mounted at /boot.
 
 The remaining disk space was assigned to an LVM physical volume. LVM was used to create logical volumes for the root filesystem /, the variable-data directory /var and swap. Separating /var limits the impact that uncontrolled growth of logs and other variable data could have on the root filesystem. Approximately 4 GiB were left free in the volume group for future expansion. 
@@ -135,10 +137,11 @@ The remaining disk space was assigned to an LVM physical volume. LVM was used to
 
 ### Base System Configuration
 
-The objetive of this parte phase is...................  
+The objective of this phase was to prepare controlled Linux base before installing network and web services. The configuration focused on package maintenance, system identity, time settings, user roles, privileges and filesystem permissions. These controls are important because services such as SSH and NGINX depend on a correctly configured operating system and a clear access model.
+
 
 **1. Package update and package-management validation.**
-Before starting to install any services, it is advisable to update packeges using the Advanced Package Tool (APT). The utility used is:
+APT uses the package information from the configured repositories to install and update software. Updating this information before installing the services helps to avoid versioning issues during the installation of the services. The utility used is:
 
 ```bash
 sudo apt-get update && sudo apt-get upgrade
@@ -155,16 +158,13 @@ Fix these conflicts by running `sudo apt-get dist-upgrade` Checking again:
 
 **2. System identity, timezone and locale configuration**
 
-In this step the time zone is configured. Even though that configuration it may seem little useful, however, taht configuration it is of the greate importance
+The server was configured with a clear system identity and the correct time settings. The hostname selected for the server is:
 
-| User | Gropup | Group |  |
-| ---- | ------ | ----- | ----- |
-| nuno | admin |  |  |
-| dev | developers |  |  |
-| ops | operators |  |  |
+```bash
 
+```
 
-En este paso se configurar la zona horaria. A pesar de que esta configuración pueda parecer poco util, en realidad es de gran importancia para la seguridad y auditoria. Por una parte, los logs dependen de que las marcas de tiempo sean precisas y por otra parte, proporciona consistencia en los servicios y protocolos de red. 
+Correct time configuration is important for system administration because logs, SSH connections, security events and troubleshooting depend on accurate timestamps. A clear hostname is also important because it allows administrators to identify the system correctly in logs and remote sessions.
 
 The command used to list the complete horarie zone and for change the correct region are:
 
@@ -176,20 +176,67 @@ The command used to set up the region is:
 ```bash
 timedatectl set-timezone Europe/Madrid
 ```
-Checking the correct
+The final configuration was checked with
 
 ![timedatectl-locale-a](screenshots/timedatectl-locale-a2.png)
 
 **3. Account defaults and role design.**
-Revisar /etc/login.defs y /etc/skel. Definir los roles de administrador, desarrollador y operador. 107.1
 
-se describe principalmente el sistema de permisos estándar de Linux, que es un tipo de Control de Acceso Discrecional (DAC). En este modelo, cada archivo tiene un propietario y un grupo, y es el propietario quien decide qué permisos (lectura, escritura, ejecución) otorga a los demás.
+The server uses separate accounts and groups for different responsibilities.
+
+| User | Gropup | Responsibility |
+| ---- | ------ | -------------- |
+| nuno | admin  | System administration |
+| dev | developers | Application development |
+| ops | operators | Monitoring |
+
+The purpose of this design is to separate responsibilities instead of giving the same permissions to every user.
+
+Linux controls access to files and system resources through users, groups, ownership and read, write and execute permissions. This provides the base for applying the principle of least privilege.
+
+The administrator account was checked before creating the additional roles.
+
+Checking the identity and privilege of current user:
+
+![check-curent-user](screenshots/check-current-user.png)
+
+Creating the groups and checking. The GID identify the number asigned automatly
+
+![creating-groups](screenshots/creating-groups.png)
+
+Now modify the admin acounto to add the administrator to admin group and add the users to theis respective group:
+
+![add-admin-add-users](screenshots/add-admin-add-users.png)
+
+The parámeters used are:
+
+- -a: 
+- -G: add the group
+- -m: create automatly the personal directory of user and copy the file from /etc/skel.
+- -U: create a privete group with the same name of user.
+- -s: asign a user to a asign directoy 
+
+The final parameter instructs the system that this user should be logged in directly to Bash upon logging in. This configuration is stored in the /etc/passwd directory. This is used for service accounts that should not have access to the terminal.
+
+now asigne passwords to users:
+
+![add-passwd-to-users](screenshots/add-passwd-to-users.png)
+
+Finally, chech the .... and check the state of passwords of users
+
+![check-groups-and-users](screenshots/check-groups-and-users.png)
+
+![chage-l-dev-ops](screenshots/chage-l-dev-ops.png)
+
+![checking-the-permitss](screenshots/checking-the-permits.png)
 
 
 
 
 **4. User, group and credential management.**
 Crear usuarios y grupos, asignar shell, directorios personales y pertenencia a grupos. Gestionar contraseñas, caducidad, bloqueo y desbloqueo. 107.1
+
+
 
 **5. Sudo privilege delegation and filesystem permissions.**
 Delegar privilegios con sudo y /etc/sudoers.d/. Crear directorios compartidos y aplicar chown, chgrp, chmod, umask y SGID. 110.1, 104.5
@@ -200,10 +247,101 @@ Revisar el target y los servicios habilitados con systemctl. Validar usuarios, g
 
 ### Network Configuration
 
+Requirements:
+
+- R07 - the infrastructure must be managed via a separate management network.
+- NET.1.1.A4: The network must be separated into a three parts: an internal network, a DMZ, and external connections. --> important
+- NET.1.1.A10: Services accessible from the Internet must be placed in an external DMZ.
+- NET.1.1.A11: Access from the Internet to the internal network must use a secure communication channel.
+- NET.1.1.A23: Systems with different protection needs should be placed in different network segments.
+
+Según los requisitos NET.1.1.A10 indican que todos los servicios accesibles desde Internet deben ubicarse obligatoriamente en una DMZ externa. Según el requisito NET.1.1.A4,  [[[ NET.1.1.A4 Network Separation into Zones (B)
+The overall network at hand MUST be physically separated into at least the following three zones: internal network, demilitarised zone (DMZ), and external connections (including to the Internet and other untrusted networks). The transitions between the zones MUST be protected by a firewall. This method of control MUST follow the principle of local communication so that firewalls allow only authorised communications (whitelisting). 
+
+NET.1.1.A3 Specification of Network Requirements (B)
+A requirements specification MUST be created based on the security policy for the network in question. The specification MUST be consistently maintained. It MUST be possible to derive all the essential elements of network architecture and design from these requirements.
+
+NET.1.1.A18 P-A-P Structure for the Internet Connection (S)
+An organisation’s network SHOULD be connected to the Internet via a firewall with a P-A-P structure (see NET.1.1.A4 Network Separation into Zones).
+A proxy-based application layer gateway (ALG) MUST be implemented between the two firewall levels. The ALG MUST be connected via its own transfer network (dual-homed) to both the external packet filter and the internal packet filter. The transfer network MUST NOT be occupied with tasks other than those performed for the ALG. 
+]]]. Por tanto, se segmentará la red del siguiente modo:
+
+---
+flowchart TD
+
+    INTERNET([Internet])
+
+    FW1["Firewall 1"]
+
+    subgraph DMZ["DMZ"]
+        direction TB
+        WEB["Web Server"]
+    end
+
+    FW2["Firewall 2"]
+
+    subgraph INTERNAL["Internal Network"]
+        direction TB
+        APP["Application Server"]
+        DB["Database Server"]
+    end
+
+    INTERNET --> FW1
+    FW1 --> WEB
+    WEB --> FW2
+    FW2 --> APP
+    FW2 --> DB
+
+    style DMZ stroke-dasharray: 8 5,stroke-width:2px
+    
+---
+
+
+1. Check the virtual network in host.
+
+
+
+2. Configure netplan
+
+![network-created.png](screenshots/network-created.png)
+
+3. Configure firewall
+
+![ufw-rules.png](screenshots/ufw-rules.png)
+
+4. Create count ssh for admin and deployment
+
+For more details:
+![configure-ssh.md](docs/configure-ssh.md)
+
+
+Fuentes:
+- LPIC-2 Study Guide — Chapter 6, Navigating Network Services: interfaces, routing y separación de redes.
+- R07, R08 y R09: red de administración separada, planificación de segmentos y prevención de bypass del firewall.
 
 
 ### Remote Administration and Server Hardening
 
+Remote administration of the Web Server is provided through OpenSSH. SSH was selected because it provides encrypted and authenticated remote access to the Linux system.
+
+The administration account `nuno` uses public-key authentication. The private key remains on the administrator machine, while only the public key is stored on the Web Server in `~/.ssh/authorized_keys`. LPIC-1 describes public-key authentication as the preferred method for remote SSH access and explains the use of `ssh-keygen`, `ssh-copy-id` for  to generate and copy the public key and `authorized_keys` as the file in which to store it.
+
+SSH access has been secured using a specific configuration file:
+
+`/etc/ssh/sshd_config.d/10-web-server-security.conf`
+
+The following controls were applied:
+
+- Direct SSH login as `root` is disabled.
+- Public-key authentication is enabled.
+- Password authentication is disabled.
+- SSH access is limited to the authorised accounts `nuno` and `dev`.
+
+These controls reduce the use of passwords, prevent direct remote access with the root account, and limit which local users can open an SSH session.
+
+The final network design allows the administrator to access SSH only from the Management Network. The developer account will use the their public-key authentication to deploy the web server code.
+
+![evidence-ssh-working.png](screenshots/evidence-ssh-working.png)
 
 
 ### Web Service Deployment and TLS
@@ -257,6 +395,18 @@ https://imaginecloud.es/media/attachments/2024/06/16/812-entornos_y_aplicaciones
 
 
 - LPI-Learning-Material-102-500:
+
+
+- https://wiki.libvirt.org/VirtualNetworking.html
+
+
+- https://wiki.libvirt.org/Networking.html
+
+
+- https://help.ubuntu.com/community/UFW
+
+
+
 
 
 - Ubuntu Server documentation:

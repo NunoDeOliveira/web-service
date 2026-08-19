@@ -1,0 +1,5 @@
+<network>
+  <name>management-net</name>
+  <bridge name='virbr50' stp='on' delay='0'/>
+  <ip address='10.10.30.254' prefix='24'/>
+</network>
