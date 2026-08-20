@@ -140,7 +140,7 @@ The remaining disk space was assigned to an LVM physical volume. LVM was used to
 The objective of this phase was to prepare controlled Linux base before installing network and web services. The configuration focused on package maintenance, system identity, time settings, user roles, privileges and filesystem permissions. These controls are important because services such as SSH and NGINX depend on a correctly configured operating system and a clear access model.
 
 
-**1. Package update and package-management validation.**
+**1. Package maintenance**
 APT uses the package information from the configured repositories to install and update software. Updating this information before installing the services helps to avoid versioning issues during the installation of the services. The utility used is:
 
 ```bash
@@ -232,92 +232,140 @@ Finally, chech the .... and check the state of passwords of users
 
 
 
-
-**4. User, group and credential management.**
-Crear usuarios y grupos, asignar shell, directorios personales y pertenencia a grupos. Gestionar contraseñas, caducidad, bloqueo y desbloqueo. 107.1
-
-
-
-**5. Sudo privilege delegation and filesystem permissions.**
-Delegar privilegios con sudo y /etc/sudoers.d/. Crear directorios compartidos y aplicar chown, chgrp, chmod, umask y SGID. 110.1, 104.5
-
-**6. Systemd service review and final validation.**
-Revisar el target y los servicios habilitados con systemctl. Validar usuarios, grupos, permisos, sudo, hora, locale y servicios. 101.3
-
-
 ### Network Configuration
 
-Requirements:
+The network architecture was designed to separate systems according to their security needs.
 
-- R07 - the infrastructure must be managed via a separate management network.
-- NET.1.1.A4: The network must be separated into a three parts: an internal network, a DMZ, and external connections. --> important
-- NET.1.1.A10: Services accessible from the Internet must be placed in an external DMZ.
-- NET.1.1.A11: Access from the Internet to the internal network must use a secure communication channel.
-- NET.1.1.A23: Systems with different protection needs should be placed in different network segments.
+The main requirements used for this design are:
 
-Según los requisitos NET.1.1.A10 indican que todos los servicios accesibles desde Internet deben ubicarse obligatoriamente en una DMZ externa. Según el requisito NET.1.1.A4,  [[[ NET.1.1.A4 Network Separation into Zones (B)
-The overall network at hand MUST be physically separated into at least the following three zones: internal network, demilitarised zone (DMZ), and external connections (including to the Internet and other untrusted networks). The transitions between the zones MUST be protected by a firewall. This method of control MUST follow the principle of local communication so that firewalls allow only authorised communications (whitelisting). 
+- R07: administration must use a separate Management Network.
+- NET.1.1.A4: the network must be separated into at least an Internal Network, a DMZ and external connections. Communication between these zones must pass through firewalls.
+- NET.1.1.A10: services accessible from the Internet must be placed in a DMZ.
+- NET.1.1.A23: systems with different protection needs should be placed in different network segments.
 
-NET.1.1.A3 Specification of Network Requirements (B)
-A requirements specification MUST be created based on the security policy for the network in question. The specification MUST be consistently maintained. It MUST be possible to derive all the essential elements of network architecture and design from these requirements.
+Based on these requirements, the Web Server is placed in the DMZ because it will provide services to external users. Administrative systems are separated in the Management Network, while development and internal services are placed in the Internal Network.
 
-NET.1.1.A18 P-A-P Structure for the Internet Connection (S)
-An organisation’s network SHOULD be connected to the Internet via a firewall with a P-A-P structure (see NET.1.1.A4 Network Separation into Zones).
-A proxy-based application layer gateway (ALG) MUST be implemented between the two firewall levels. The ALG MUST be connected via its own transfer network (dual-homed) to both the external packet filter and the internal packet filter. The transfer network MUST NOT be occupied with tasks other than those performed for the ALG. 
-]]]. Por tanto, se segmentará la red del siguiente modo:
+A VLSM addressing plan was used to assign only the required address space to each network:
+
+| Network | Subnet | Required hosts | Usable addresses | Purpose |
+|---|---|---:|---:|---|
+| Internal | `10.0.0.0/27` | 16 | 30 | Development and internal systems |
+| DMZ | `10.0.0.32/28` | 8 | 14 | Internet-facing services |
+| Management | `10.0.0.48/29` | 4 | 6 | Infrastructure administration |
+
+The planned topology is:
 
 ---
+### Network Configuration
+
+The network architecture was designed to separate systems according to their security needs.
+
+The main requirements used for this design are:
+
+- R07: administration must use a separate Management Network.
+- NET.1.1.A4: the network must be separated into at least an Internal Network, a DMZ and external connections. Communication between these zones must pass through firewalls.
+- NET.1.1.A10: services accessible from the Internet must be placed in a DMZ.
+- NET.1.1.A23: systems with different protection needs should be placed in different network segments.
+
+Based on these requirements, the Web Server is placed in the DMZ because it will provide services to external users. Administrative systems are separated in the Management Network, while development and internal services are placed in the Internal Network.
+
+A VLSM addressing plan was used to assign only the required address space to each network:
+
+| Network | Subnet | Required hosts | Usable addresses | Purpose |
+|---|---|---:|---:|---|
+| Internal | `10.0.0.0/27` | 16 | 30 | Development and internal systems |
+| DMZ | `10.0.0.32/28` | 8 | 14 | Internet-facing services |
+| Management | `10.0.0.48/29` | 4 | 6 | Infrastructure administration |
+
+The planned topology is:
+
+```mermaid
 flowchart TD
 
     INTERNET([Internet])
+    LIBVIRT["libvirt gateway<br/>192.168.122.1/24"]
 
-    FW1["Firewall 1"]
+    FW1{{"FW1 - Firewall<br/>WAN: 192.168.122.x/24<br/>DMZ: 10.0.0.33/28"}}
 
-    subgraph DMZ["DMZ"]
-        direction TB
-        WEB["Web Server"]
+    subgraph DMZ["DMZ - 10.0.0.32/28 - 8 required hosts"]
+        WEB["Web Server<br/>10.0.0.34/28"]
     end
 
-    FW2["Firewall 2"]
+    FW2{{"FW2 - Firewall<br/>DMZ: 10.0.0.46/28<br/>Internal: 10.0.0.1/27<br/>Management: 10.0.0.49/29"}}
 
-    subgraph INTERNAL["Internal Network"]
-        direction TB
-        APP["Application Server"]
-        DB["Database Server"]
+    subgraph INTERNAL["Internal Network - 10.0.0.0/27 - 16 required hosts"]
+        DEV["Developer<br/>10.0.0.2/27"]
+        DB["Database<br/>10.0.0.3/27"]
     end
 
-    INTERNET --> FW1
+    subgraph MANAGEMENT["Management Network - 10.0.0.48/29 - 4 required hosts"]
+        ADMIN["Admin<br/>10.0.0.50/29"]
+        OPS["Operator<br/>10.0.0.51/29"]
+    end
+
+    INTERNET --> LIBVIRT
+    LIBVIRT --> FW1
     FW1 --> WEB
     WEB --> FW2
-    FW2 --> APP
+
+    FW2 --> DEV
     FW2 --> DB
+    FW2 --> ADMIN
+    FW2 --> OPS
 
-    style DMZ stroke-dasharray: 8 5,stroke-width:2px
-    
----
+    style DMZ stroke-dasharray:8 5,stroke-width:2px
+    style INTERNAL stroke-dasharray:8 5,stroke-width:2px
+    style MANAGEMENT stroke-dasharray:8 5,stroke-width:2px
+
+```
 
 
-1. Check the virtual network in host.
+**1. Create the virtual network segments**
+
+The required network segments were created on the KVM/libvirt host before configuring the Web Server.
+
+Three separate virtual networks were defined:
+
+- `web-dmz` for Internet-facing services.
+- `management-net` for administration.
+- `internal-net` for internal systems.
+
+The networks were configured as persistent and enabled at system startup. This provides the virtual network structure required to separate systems with different security needs.
+
+The configuration was verified with:
+
+![Virtual network validation](screenshots/.png)
 
 
+**2. Persistent network configuration with Netplan**
 
-2. Configure netplan
+The Web Server uses Netplan to keep its network configuration persistent after a reboot. A static IP address was assigned to the DMZ interface because a server must have a predictable address for firewall rules, SSH administration and web services.
 
-![network-created.png](screenshots/network-created.png)
+The Web Server was assigned the address `10.0.0.34/28` in the DMZ network `10.0.0.32/28`.
 
-3. Configure firewall
+A temporary DHCP interface is also maintained during the current implementation to provide Internet and SSH access until FW1 and FW2 are deployed.
 
-![ufw-rules.png](screenshots/ufw-rules.png)
+The final configuration was checked to confirm the assigned interfaces, addresses and routes.
 
-4. Create count ssh for admin and deployment
+![Netplan network configuration](screenshots/network-created.png)
+
+**3. Host firewall configuration**
+
+UFW was configured as the local firewall of the Web Server. The objective is to expose only the services required by the server and block all other incoming traffic.
+
+The firewall uses a default-deny policy for incoming connections and allows only:
+
+- `80/tcp` for HTTP.
+- `443/tcp` for HTTPS.
+- `22/tcp` from the Management Network (`10.0.0.48/29`) for administration.
+- `22/tcp` from the authorised developer host (`10.0.0.2`) for application deployment.
+
+This reduces the exposed network surface and applies a whitelist model: traffic is blocked unless it is explicitly required.
+
+![UFW firewall rules](screenshots/ufw-rules.png)
 
 For more details:
-![configure-ssh.md](docs/configure-ssh.md)
-
-
-Fuentes:
-- LPIC-2 Study Guide — Chapter 6, Navigating Network Services: interfaces, routing y separación de redes.
-- R07, R08 y R09: red de administración separada, planificación de segmentos y prevención de bypass del firewall.
+![configure-network.md](docs/configure-network.md)
 
 
 ### Remote Administration and Server Hardening
@@ -342,6 +390,9 @@ These controls reduce the use of passwords, prevent direct remote access with th
 The final network design allows the administrator to access SSH only from the Management Network. The developer account will use the their public-key authentication to deploy the web server code.
 
 ![evidence-ssh-working.png](screenshots/evidence-ssh-working.png)
+
+For more details:
+![configure-ssh.md](docs/configure-ssh.md)
 
 
 ### Web Service Deployment and TLS
