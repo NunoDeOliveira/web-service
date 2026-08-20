@@ -395,7 +395,22 @@ For more details:
 ![configure-ssh.md](docs/configure-ssh.md)
 
 
-### Web Service Deployment and TLS
+### Web Services
+
+**1. NGINX installation**
+
+![Nginx initial page](screenshot/page-nginx.png)
+
+**2. HTTP/HTTPS configuration**
+
+
+
+**3. TLS certificate**
+
+
+
+**5. NGINX hardering**
+
 
 
 
@@ -455,6 +470,10 @@ https://imaginecloud.es/media/attachments/2024/06/16/812-entornos_y_aplicaciones
 
 
 - https://help.ubuntu.com/community/UFW
+
+- The LPIC2 Exam Prep. Implementing Nginx as a web server and a reverse proxy (208.4): https://lpic2book.github.io/src/lpic2.208.4/
+
+- Ubuntu tutorials. Install and configure Nginx: https://ubuntu.com/tutorials/install-and-configure-nginx#3-creating-our-own-website
 
 
 
