@@ -319,6 +319,8 @@ flowchart TD
 
 ```
 
+In this case, the web server work as a reverse proxy located behind the FW1 firewall, redirecting client requests to the relevant server on the internal network.
+
 
 **1. Create the virtual network segments**
 
@@ -400,6 +402,34 @@ For more details:
 **1. NGINX installation**
 
 ![Nginx initial page](screenshot/page-nginx.png)
+
+---
+
+Before install Nginx, the next step will be to set the directory permissions of `/var/www/northtech-ops` for deploying the web service code. This directory must remain under root administrative control root, while the group of developers must be able to modify web content. Enabling SGID on the directory allow new files and subdirectories automatically get the 'developers' group. 
+
+![Developers permissions configure](screenshoot/developers-permissions-access-var-directory.png)
+
+In the capture is checked the permissions of configuration directories to confirm that they remain under `root` control. Then, `/var/www/northtech-ops` was assigned to the `developers` group, group access was enabled, and then SGID was applied so new files and directories inherit the `developers` group. The final check confirms the `root:developers` ownership and the SGID permission.
+
+---
+
+It was created a NGINX server block for **NorthTech Operations** instead of using the default Ubuntu website. The site configuration is stored in `/etc/nginx/sites-available/northtech` and enabled through `/etc/nginx/sites-enabled/`.
+
+The configuration separates the global NGINX settings from the application-specific settings and maps the website to `/var/www/northtech`. This makes the service easier to maintain, audit and later extend with HTTPS and reverse-proxy functions.
+
+Before applying any configuration change, `nginx -t` is used to validate the configuration. The service is reloaded only after a successful test, reducing the risk of an outage caused by a configuration error.
+
+![NorthTech NGINX validation](screenshots/final-nginx-content.png)
+
+And the co
+
+![Web Server](screenshoot/final-web-site.png)
+
+
+Detailed implementation: 
+[NGINX Service Setup](nginx-service set-up.md)
+
+
 
 **2. HTTP/HTTPS configuration**
 
