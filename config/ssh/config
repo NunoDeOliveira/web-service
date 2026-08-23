@@ -1,0 +1,6 @@
+### Configuration file for SSH server secury rules
+
+PermitRootLogin no
+PubkeyAuthentication yes
+PasswordAuthentication no
+AllowUsers nuno

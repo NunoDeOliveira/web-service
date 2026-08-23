@@ -241,6 +241,9 @@ curl -I http://localhost
 ```
 
 
+################# sabado 22 o domingo 23.
+
+
 **10. Creating a TLS certificate**
 
 Create a directory to store the TLS certificate and private key:
@@ -283,30 +286,28 @@ Check the certificate information:
 ```bash
 sudo openssl x509 -in /etc/nginx/tls/northtech-ops.crt -noout -subject -issuer -dates
 ```
-This command shows the certificate owner, issuer and validity dates.
+This command shows the certificate owner, issuer and validity dates. The data of certificate:
 
-
-################# sabado 22 o domingo 23.
-
+![Data of ssl certificate](screenshoots/data-of-ssl-certificate.png)
 
 
 
 
 **11. Configure HTTPS**
 
-First edit this the next file to .......................
+Edit the NGINX configuration file for NorthTech Operations:
 
 ```bash
 sudo nano /etc/nginx/sites-available/northtech-ops
 ```
-And add 
+This file defines how NGINX manages HTTP and HTTPS requests for the website. The configuratio of the site is teh following: 
 
 ```bash
 server {
     listen 80;
     listen [::]:80;
 
-    server_name _;
+    server_name northtech.test;
 
     return 301 https://$host$request_uri;
 }
@@ -315,7 +316,7 @@ server {
     listen 443 ssl;
     listen [::]:443 ssl;
 
-    server_name _;
+    server_name _nothtech.test;
 
     root /var/www/northtech-ops;
     index index.html;
@@ -324,6 +325,7 @@ server {
     ssl_certificate_key /etc/nginx/tls/northtech-ops.key;
 
     ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
 
     location / {
         try_files $uri $uri/ =404;
@@ -334,39 +336,104 @@ server {
 }
 ```
 
-them:
+The second server block listens on TCP port 443 and provides the website using TLS.
+
+- server_name northtech.test defines the name used to access the website.
+- root defines where the website files are stored.
+- index defines the default web page.
+- ssl_certificate defines the TLS certificate used by NGINX.
+- ssl_certificate_key defines the private key.
+- ssl_protocols allows TLS 1.2 and TLS 1.3.
+- ssl_ciphers allows strong cipher suites and removes anonymous and MD5-based ciphers.
+- try_files checks that the requested file exists. If not, NGINX returns HTTP 404.
+- access_log stores HTTP requests.
+- error_log stores NGINX errors.
+
+Check the NGINX configuration before applying with the next command checks the syntax and configuration files for errors.
 
 ```bash
 sudo nginx -t
 ```
 
-if there are not errors
+If the test is successful, applies the new configuration without stopping the NGINX service:
 
 ```bash
 sudo systemctl reload nginx
 ```
 
+For configuration created, is necesssary to set the certificate permissions:
+
+```bash
+sudo chmod 644 /etc/nginx/tls/northtech-ops.crt
+sudo chmod 600 /etc/nginx/tls/northtech-ops.key;
+```
+The certificate can be read by other users because it contains public information. The private key, uses permission 600 because only can be read or modified by administrator.
 
 
-Final checking:
+#### Configure local name resolution
+
+The Web server does not use a DNS server yet. For this reason, /etc/hosts is used to map the website name to the IP address of the web server.
+
+```bash
+sudo nano /etc/hosts
+```
+
+The name northtech.test is the same name used in the certificate Common Name (CN) and in the NGINX server_name. The system name resolution can be checked with `getent`:
+
+```bash
+getent hosts northtech.test
+```
+
+
+#### The final validation.
+
+for checking the configuration, this commands has been used:
 
 ```bash
 ss -lntp | grep -E ':80|:443'
 ```
-```bash
-curl -I http://localhost
-```
-```bash
-curl -k -I https://localhost
-```
-```bash
-openssl s_client -connect localhost:443
-```
-and the cerfificate SSL
+
+The result must show TCP ports 80 and 443 in LISTEN state.
+
+Check the HTTP service:
 
 ```bash
-openssl s_client -connect localhost:443 </dev/null 2>/dev/null | openssl x509 -noout -subject -issuer -dates
+curl -I http://northtech.test
 ```
+In this case the resulte must be `HTTP/1.1 301 Moved Permanently`, confirms that NGINX redirects the connection from HTTP to HTTPS.
+
+
+The next command is for checking HTTPS services, the expected result must be HTTP/1.1 200 OK
+
+```bash
+curl -k -I https://northtech.test
+```
+
+The -k option allows curl to connect because the web server uses a self-signed certificate that is not trusted by a public Certificate Authority
+
+
+```bash
+openssl s_client -connect northtech.test:443 -servername northtech.test -brief </dev/null
+```
+
+This command connects directly to TCP port 443 and shows the TLS version, cipher and certificate verification result.
+
+Finally, inspect the installed certificate:
+
+```bash
+sudo openssl x509 -in /etc/nginx/tls/northtech-ops.crt -noout -subject -issuer -dates
+```
+
+This command shows:
+
+- subject: identity stored in the certificate.
+- issuer: entity that signed the certificate.
+- notBefore: date when the certificate becomes valid.
+- notAfter: certificate expiration date.
+
+Because this is a self-signed certificate, the subject and issuer are the same.
+
+
 
 **12. Nginx hardening**
 

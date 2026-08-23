@@ -421,25 +421,38 @@ Before applying any configuration change, `nginx -t` is used to validate the con
 
 ![NorthTech NGINX validation](screenshots/final-nginx-content.png)
 
-And the co
-
 ![Web Server](screenshoot/final-web-site.png)
-
-
-Detailed implementation: 
-[NGINX Service Setup](nginx-service set-up.md)
 
 
 
 **2. HTTP/HTTPS configuration**
 
+The NorthTech Operations website was configured to use HTTPS on TCP port `443`.
+
+HTTP traffic on port `80` is redirected to HTTPS. This ensures that the website is accessed using an encrypted connection.
+
+A self-signed X.509 certificate was created with OpenSSL for the local laboratory environment. The certificate uses `northtech.test` as the server name and is valid for one year.
+
+NGINX was configured to use TLS 1.2 and TLS 1.3. The private key is protected with restricted file permissions.
+
+The implementation was validated with `curl` and OpenSSL. The tests confirm:
+
+- HTTP requests are redirected to HTTPS.
+- HTTPS returns `HTTP/1.1 200 OK`.
+- A TLS connection is established correctly.
+- NGINX presents the expected NorthTech Operations certificate.
+- The certificate validity dates and identity are correct.
+
+![TLS validation](screenshots/TLS-version-cipher-certificate_verification.png)
 
 
-**3. TLS certificate**
+Detailed implementation: 
+[NGINX Service Setup](docs/nginx-service set-up.md)
 
 
 
-**5. NGINX hardering**
+
+**3. NGINX hardering**
 
 
 
@@ -489,21 +502,45 @@ https://imaginecloud.es/media/attachments/2024/06/16/812-entornos_y_aplicaciones
 
 - LPI-Learning-Material-101-500: 
 
-
 - LPI-Learning-Material-102-500:
 
+- The Perfect Nginx Server - Ubuntu (24.04) Edition: 
+https://www.udemy.com/course/the-perfect-nginx-server-ubuntu-2404-edition/
 
 - https://wiki.libvirt.org/VirtualNetworking.html
 
-
 - https://wiki.libvirt.org/Networking.html
-
 
 - https://help.ubuntu.com/community/UFW
 
-- The LPIC2 Exam Prep. Implementing Nginx as a web server and a reverse proxy (208.4): https://lpic2book.github.io/src/lpic2.208.4/
+- The LPIC2 Exam Prep. Implementing Nginx as a web server and a reverse proxy (208.4): 
+https://lpic2book.github.io/src/lpic2.208.4/
 
-- Ubuntu tutorials. Install and configure Nginx: https://ubuntu.com/tutorials/install-and-configure-nginx#3-creating-our-own-website
+- Ubuntu Server documentation. How to install nginx: 
+https://ubuntu.com/server/docs/how-to/web-services/install-nginx/
+
+- Ubuntu Server documentation. How to configure nginx: 
+https://ubuntu.com/server/docs/how-to/web-services/configure-nginx/
+
+- Medium. Enable SSL in Nginx Server to access the application on HTTPS (Port 443): 
+https://medium.com/@charanv369/enable-ssl-in-nginx-server-to-access-the-application-on-https-port-443-1bcd52667b08
+
+
+
+- NGINX. Module ngx_http_ssl_module: 
+https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate
+
+- NGINX. Module ngx_http_ssl_module: 
+https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate_key
+
+- NGINX. Module ngx_http_ssl_module: 
+https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_protocols
+
+- OpenSSL Documentation. openssl-req: 
+https://docs.openssl.org/3.4/man1/openssl-req/
+
+- OWASP Cheat Sheet Series. HTTP Security Response Headers Cheat Sheet: 
+https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html
 
 
 
