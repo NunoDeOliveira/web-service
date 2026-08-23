@@ -421,7 +421,7 @@ Before applying any configuration change, `nginx -t` is used to validate the con
 
 ![NorthTech NGINX validation](screenshots/final-nginx-content.png)
 
-![Web Server](screenshoot/final-web-site.png)
+![Final Web Site](screenshoot/final-web-site.png)
 
 
 
