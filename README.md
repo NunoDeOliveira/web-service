@@ -421,7 +421,7 @@ Before applying any configuration change, `nginx -t` is used to validate the con
 
 ![NorthTech NGINX validation](screenshots/final-nginx-content.png)
 
-![Final Web Site](screenshoot/final-web-site.png)
+![Final Web Site](screenshots/final-web-site.png)
 
 
 
@@ -447,7 +447,7 @@ The implementation was validated with `curl` and OpenSSL. The tests confirm:
 
 
 Detailed implementation: 
-[NGINX Service Setup](docs/nginx-service set-up.md)
+![NGINX Service Setup](docs/nginx-service-setup.md)
 
 
 
@@ -573,7 +573,6 @@ https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.pdf
 
 - Ubuntu installation documentation. Autoinstall quick start. Available in: https://canonical-subiquity.readthedocs-hosted.com/en/latest/howto/autoinstall-quickstart.html   
 
-https://www.digitalocean.com/community/tutorials/apache-vs-nginx-practical-considerations
 
 https://docs.oracle.com/en/learn/ol-nginx/#update-the-nginx-configuration-for-tlsssl
 

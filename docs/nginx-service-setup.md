@@ -270,16 +270,13 @@ req: creates a certificate request.
 
 OpenSSL asks for information about the certificate. The information will be about the organisation NorthTech Operations.
 
-The private key must only be accessible by the administrator:
-
-```bash
-sudo chmod 600 /etc/nginx/tls/northtech-ops.key
-```
-The certificate is public information, so it can have read permissions:
+For configuration created, is necesssary to set the certificate permissions:
 
 ```bash
 sudo chmod 644 /etc/nginx/tls/northtech-ops.crt
+sudo chmod 600 /etc/nginx/tls/northtech-ops.key;
 ```
+The certificate can be read by other users because it contains public information. The private key, uses permission 600 because only can be read or modified by administrator.
 
 Check the certificate information:
 
@@ -316,7 +313,7 @@ server {
     listen 443 ssl;
     listen [::]:443 ssl;
 
-    server_name _nothtech.test;
+    server_name northtech.test;
 
     root /var/www/northtech-ops;
     index index.html;
@@ -325,14 +322,15 @@ server {
     ssl_certificate_key /etc/nginx/tls/northtech-ops.key;
 
     ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
+
+    # Headers 
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
     location / {
         try_files $uri $uri/ =404;
     }
-
-    access_log /var/log/nginx/northtech-ops-access.log;
-    error_log /var/log/nginx/northtech-ops-error.log;
 }
 ```
 
@@ -349,6 +347,13 @@ The second server block listens on TCP port 443 and provides the website using T
 - access_log stores HTTP requests.
 - error_log stores NGINX errors.
 
+And the headers have the following purpose:
+
+- X-Content-Type-Options prevents the browser from guessing the content type.
+- X-Frame-Options prevents the website from being displayed inside a frame.
+- Referrer-Policy limits the information sent when a user follows a link to another website.
+always sends the header also with error responses.
+
 Check the NGINX configuration before applying with the next command checks the syntax and configuration files for errors.
 
 ```bash
@@ -360,14 +365,6 @@ If the test is successful, applies the new configuration without stopping the NG
 ```bash
 sudo systemctl reload nginx
 ```
-
-For configuration created, is necesssary to set the certificate permissions:
-
-```bash
-sudo chmod 644 /etc/nginx/tls/northtech-ops.crt
-sudo chmod 600 /etc/nginx/tls/northtech-ops.key;
-```
-The certificate can be read by other users because it contains public information. The private key, uses permission 600 because only can be read or modified by administrator.
 
 
 #### Configure local name resolution
@@ -433,46 +430,6 @@ This command shows:
 
 Because this is a self-signed certificate, the subject and issuer are the same.
 
-
-
-**12. Nginx hardening**
-
-Add headers in this configuration file in HTTPS block
-
-```bash
-add_header X-Content-Type-Options "nosniff" always;
-add_header X-Frame-Options "SAMEORIGIN" always;
-add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-```
-
-inside `server`block limitate the size:
-
-```bash
-client_max_body_size 10M;
-```
-
-validate before apply:
-
-```bash
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-```bash
-curl -k -I https://localhost
-```
-
-
----
-
-**Note:** is important carry out the TCP Wrappers checking because a network servive must have explicity support for TCP Wrappers, for in order to benefit from the access control and restriction lists that this technology provides.
-To check whether your installed Nginx binary is compatible with this library, run the following command:
-
-```bash
-ldd /usr/sbin/sbin/nginx | grep "libwrap"
-```
-
-If Nginx supports TCP Wrappers, the command output will display the link path to the libwrap.so library on the system 
 
 
 
