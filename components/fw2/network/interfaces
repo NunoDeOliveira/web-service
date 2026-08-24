@@ -1,0 +1,21 @@
+auto lo
+iface lo inet loopback
+
+# DMZ
+auto eth0
+iface eth0 inet static
+    address 10.0.0.46
+    netmask 255.255.255.240
+    gateway 10.0.0.33
+
+# Internal
+auto eth1
+iface eth1 inet static
+    address 10.0.0.1
+    netmask 255.255.255.224
+
+# Management
+auto eth2
+iface eth2 inet static
+    address 10.0.0.49
+    netmask 255.255.255.248

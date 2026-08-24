@@ -452,7 +452,109 @@ Detailed implementation:
 
 
 
-**3. NGINX hardering**
+### Installing and configure the firewalls of DMZ
+
+The DMZ firewall design is inspired by the **Cisco ASA model**, a traditional stateful firewall used to combine routing, NAT and traffic filtering between different security zones.
+
+For this project, Alpine Linux + nftables was selected to reproduce this model with a lightweight and auditable Linux solution. The firewalls provide stateful filtering, routing and network segmentation between the WAN, DMZ, Internal and Management networks.
+
+**1. Firewall FW1**
+
+
+
+NAT is used on FW1 to allow private networks to access external networks through the firewall WAN address. It also allows controlled publication of DMZ services, such as HTTPS, without exposing the internal addressing directly.
+
+
+![Fireall fw1 network configuration](screenshots/firewalls/net-conf-fw1.png)
+
+
+
+**2. Firewall FW2**
+
+
+![Fireall fw2 network configuration](screenshots/firewalls/net-conf-fw2.png)
+
+
+![Conectivity between firewalls](screenshots/conectivity-between-fw1-fw2.png)
+
+
+
+
+
+### Installing and configuring the DMZ firewalls
+
+The DMZ firewall design is inspired by the **Cisco ASA model**, where different network zones are connected through routed firewall interfaces.
+
+For this project, Alpine Linux was selected as a lightweight operating system. FW1 and FW2 are configured first as Linux routers. Packet filtering, stateful rules and NAT are configured and validated later with nftables.
+
+---
+
+#### 1. Firewall FW1
+
+FW1 is the network boundary between the WAN and the DMZ.
+
+Its two interfaces are:
+
+- `eth0` — WAN: `192.168.122.2/24`
+- `eth1` — DMZ: `10.0.0.33/28`
+
+The default route uses the libvirt gateway `192.168.122.1`. FW1 also has static routes to the Internal (`10.0.0.0/27`) and Management (`10.0.0.48/29`) networks through FW2 at `10.0.0.46`.
+
+These routes are required because FW2 is the router connected to both networks. IPv4 forwarding is enabled with `net.ipv4.ip_forward = 1`, allowing FW1 to route packets between its interfaces [1], [2].
+
+![Firewall FW1 network configuration](screenshots/firewalls/net-conf-fw1.png)
+
+The capture verifies the WAN and DMZ addresses, the default gateway, the routes to the networks behind FW2, and IPv4 forwarding.
+
+---
+
+#### 2. Firewall FW2
+
+FW2 separates the DMZ from the Internal and Management networks.
+
+Its three interfaces are:
+
+- `eth0` — DMZ: `10.0.0.46/28`
+- `eth1` — Internal: `10.0.0.1/27`
+- `eth2` — Management: `10.0.0.49/29`
+
+Because FW2 is directly connected to these three networks, Linux creates a route for each network automatically. Its default route points to FW1 at `10.0.0.33`, which is used to reach networks outside these local segments.
+
+IPv4 forwarding is also enabled on FW2 so that it can work as a multi-homed Linux router between the DMZ, Internal and Management networks [1], [2].
+
+![Firewall FW2 network configuration](screenshots/firewalls/net-conf-fw2.png)
+
+The capture verifies the three network interfaces, the directly connected routes, the default route through FW1 and IPv4 forwarding.
+
+---
+
+#### 3. Connectivity between FW1 and FW2
+
+After configuring both routers, bidirectional ICMP tests were performed across the DMZ network.
+
+- FW1 (`10.0.0.33`) successfully reached FW2 (`10.0.0.46`).
+- FW2 (`10.0.0.46`) successfully reached FW1 (`10.0.0.33`).
+- Both tests completed with `0% packet loss`.
+
+![Connectivity between firewalls](screenshots/conectivity-between-fw1-fw2.png)
+
+This evidence confirms **Layer 3 connectivity between both firewall routers over the DMZ**. It validates the addressing and basic routing configuration before packet filtering rules are introduced.
+
+These tests do not prove firewall filtering or NAT. Those controls are validated separately after the nftables configuration.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -482,17 +584,19 @@ Detailed troubleshooting records:
 ---
 
 
-### 7. Automation and Cloud Deployment
+### 7. Future work:
+
+Automation and Cloud Deployment
 
 
 
 ---
 
 
-## 8. Official References
+## 8. References
 
 - IT-Grundschutz Compendium of the 2022 edition: 
-https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/Grundschutz/Internationa?__blob=publicationFile&v=2 
+https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/Grundschutz/Internationa__blob=publicationFile&v=2 
 
 - Guía de Seguridad de las TIC CCN-STIC-673. GUÍA DE CONFIGURACIÓN SEGURA EN SERVIDORES WEB. 
 https://www.ccn-cert.cni.es/es/series-ccn-stic/guias-de-acceso-publico-ccn-stic/6861-ccn-stic-673-guia-de-configuracion-segura-en-servidores-web/file?format=html
@@ -503,9 +607,6 @@ https://imaginecloud.es/media/attachments/2024/06/16/812-entornos_y_aplicaciones
 - LPI-Learning-Material-101-500: 
 
 - LPI-Learning-Material-102-500:
-
-- The Perfect Nginx Server - Ubuntu (24.04) Edition: 
-https://www.udemy.com/course/the-perfect-nginx-server-ubuntu-2404-edition/
 
 - https://wiki.libvirt.org/VirtualNetworking.html
 
@@ -542,41 +643,47 @@ https://docs.openssl.org/3.4/man1/openssl-req/
 - OWASP Cheat Sheet Series. HTTP Security Response Headers Cheat Sheet: 
 https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html
 
+- Cisco Secure Firewall ASA: 
+https://www.cisco.com/c/en_in/products/security/adaptive-security-appliance-asa-software/index.html
+
+- CLI Book 2: Cisco Secure Firewall ASA Firewall CLI Configuration Guide, 9.20: 
+https://www.cisco.com/c/en/us/td/docs/security/asa/asa920/configuration/firewall/asa-920-firewall-config/nat-basics.html
+
+- Alpine wiki. Using an answerfile with setup-alpine: 
+https://wiki.alpinelinux.org/wiki/Using_an_answerfile_with_setup-alpine
+
+- HashiCorp. Packer examples: 
+https://developer.hashicorp.com/packer/integrations/hashicorp/qemu/latest/components/builder/qemu
+
+
+- The Perfect Nginx Server - Ubuntu (24.04) Edition: 
+https://www.udemy.com/course/the-perfect-nginx-server-ubuntu-2404-edition/
+
+- Ubuntu installation documentation. Autoinstall quick start. Available in: https://canonical-subiquity.readthedocs-hosted.com/en/latest/howto/autoinstall-quickstart.html
+
+- Ubuntu installation documentation. Creating autoinstall configuration: 
+https://canonical-subiquity.readthedocs-hosted.com/en/latest/tutorial/creating-autoinstall-configuration.html
+
+[1] *The LPIC2 Exam Prep*, Topic 205, “Networking Configuration,”
+Objectives 205.1–205.3.
+
+[2] *The LPIC2 Exam Prep*, Topic 212, “System Security,”
+Objective 212.1, “Configuring a Router.”
 
 
 
 
-- Ubuntu Server documentation:
-https://ubuntu.com/server/docs/
 
-- NGINX official documentation:
-https://nginx.org/en/docs/
 
-- OpenSSH manuals:
-https://www.openssh.org/manual.html
 
 - CIS Ubuntu Linux Benchmark.
 
 - CIS NGINX Benchmark.
 
-- OWASP TLS guidance.
-
-- OWASP HTTP Security Response Headers guidance.
-
-- Ubuntu installation documentation. Creating autoinstall configuration: 
-https://canonical-subiquity.readthedocs-hosted.com/en/latest/tutorial/creating-autoinstall-configuration.html
-
-
-
 - Linux Filesystem Hierarchy Standard:
 https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.pdf
 
-- Ubuntu installation documentation. Autoinstall quick start. Available in: https://canonical-subiquity.readthedocs-hosted.com/en/latest/howto/autoinstall-quickstart.html   
-
-
-https://docs.oracle.com/en/learn/ol-nginx/#update-the-nginx-configuration-for-tlsssl
-
-https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-207.pdf
+- https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-207.pdf
 
 
 

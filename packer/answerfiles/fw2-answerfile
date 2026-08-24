@@ -1,0 +1,49 @@
+# Answerfile to install Alpine Linux 
+
+# FW2 - Alpine Linux answer file
+
+# Spanish keyboard
+KEYMAPOPTS="es es"
+
+# Hostname
+HOSTNAMEOPTS=fw2
+
+# Device manager
+DEVDOPTS=mdev
+
+# Temporary network configuration during installation
+INTERFACESOPTS="auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet dhcp
+hostname fw2
+"
+
+# DHCP will provide DNS during installation
+# DNSOPTS=...
+
+# UTC for consistent logs
+TIMEZONEOPTS="UTC"
+
+# No proxy
+PROXYOPTS=none
+
+# Use first Alpine mirror
+APKREPOSOPTS="-1"
+
+# Create administrative user
+USEROPTS="-a -u nuno"
+
+# Install OpenSSH
+SSHDOPTS=openssh
+
+# NTP
+NTPOPTS="busybox"
+
+# QEMU/KVM VirtIO disk
+DISKOPTS="-m sys /dev/vda"
+
+# Not needed for sys mode
+LBUOPTS=none
+APKCACHEOPTS=none

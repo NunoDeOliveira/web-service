@@ -146,9 +146,33 @@ virsh net-dumpxml internal-net
 ```
 
 This is useful because it shows the configuration that libvirt is really using.
+
+
+## Resouces
+
+- LPIC-1 Learning Materials — Topic 109: Networking Fundamentals, IPv4 addressing, subnet masks and routing.
+
+- LPIC-2 Study Guide — Topic 205: Networking Configuration, Objective 205.1, network interfaces and IP configuration.
  
+- LPIC-2 Study Guide — Topic 212: System Security, Objective 212.1, NAT, IP forwarding, port redirection and filtering rules.
+
+- LPIC-2 Study Guide — Objective 212.3: Secure Shell, SSH configuration and secure administrative access
 
 
+## Utilities 
+
+```bash
+hostname
+```
+```bash
+ip -br link
+```
+```bash
+ip -br addr
+```
+```bash
+ip route
+```
 
 
 

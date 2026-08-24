@@ -1,0 +1,17 @@
+auto lo
+iface lo inet loopback
+
+# WAN
+auto eth0
+iface eth0 inet dhcp
+    hostname fw1
+
+# DMZ
+auto eth1
+iface eth1 inet static
+    address 10.0.0.33
+    netmask 255.255.255.240
+
+    # Networks behind FW2
+    up ip route replace 10.0.0.0/27 via 10.0.0.46 dev eth1
+    up ip route replace 10.0.0.48/29 via 10.0.0.46 dev eth1

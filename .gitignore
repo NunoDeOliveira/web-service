@@ -3,7 +3,6 @@
 ######################################
 
 Papers/
-
-
-
-########### end gitignore ############
+screenshots/
+packer/secret.auto.pkrvars.hcl
+packer/output/
