@@ -35,6 +35,8 @@ The objective is to provide the development team with a secure deployment target
 2. [Requirements of Web Server](#2-requirements-of-web-server)
 3. [Architecture & Design](#3-architecture--design)
 4. [Phases of implementation](#5-phases-of-implementation)
+- [Install operating system for Web Server](4.1-install-operating-system-for-Web-Server)
+- Base System Administration
 5. [Quick Start](#6-quick-start)
 6. [Operations, Monitoring, Troubleshooting & Controlled Failure Scenarios](#6-operation-monitoring-troubleshooting--controlled-failure-scenarios)
 7. [Automation and Cloud Deployment](#7-automation-and-cloud-deployment)
@@ -98,7 +100,7 @@ The Internal network is protected behind FW2. It is prepared for future backend 
 
 ## 4. Implementation Phases
 
-### Operating System Installation
+### 4.1 Install operating system for Web Server
 
 The web server was deployed on a Linux virtual machine with the following specifications:
 
@@ -108,23 +110,27 @@ The web server was deployed on a Linux virtual machine with the following specif
 - Storage: 25 GiB virtual disk
 - Firmware: BIOS
 
-The virtual machine runs on a KVM hypervisor and is managed through virt-manager, a graphical interface for libvirt. This platform was selected because of its integration with the Ubuntu 24.04 LTS host system. The installed operating system, kernel, architecture and virtualization environment were verified using `hostnamectl`.
+The virtual machine runs on QEMU/KVM and is managed with virt-manager through libvirt. This platform was selected because it integrates well with the Ubuntu 24.04 LTS host system. The operating system, kernel, architecture, hostname and virtualisation environment were verified using `hostnamectl`.
 
 ![hostnamectl.png](screenshots/hostnamectl.png)
 
-The Static hostname mean that the identity of server y persistent. 
+The static hostname provides a persistent identity for the server across reboots.
 
-During installation, the 25 GiB virtual disk /dev/vda was manually partitioned using GPT. A 1 MiB BIOS boot partition was created for GRUB, followed by a separate 1 GiB ext4 partition mounted at /boot.
+During installation, the 25 GiB virtual disk `/dev/vda` was manually partitioned using GPT. A 1 MiB BIOS boot partition was created for GRUB, followed by a separate 1 GiB ext4 partition mounted at `/boot`.
 
-The remaining disk space was assigned to an LVM physical volume. LVM was used to create logical volumes for the root filesystem /, the variable-data directory /var and swap. Separating /var limits the impact that uncontrolled growth of logs and other variable data could have on the root filesystem. Approximately 4 GiB were left free in the volume group for future expansion. 
+The remaining disk space was assigned to an LVM physical volume. LVM was used to create logical volumes for `/`, `/var` and swap. Separating `/var` reduces the risk that uncontrolled growth of logs and other variable data could fill the root filesystem. Approximately 4 GiB were left free in the volume group for future expansion.
 
-![lsblk main comand.png](screenshots/lsblk-main-comand.png)
+![lsblk main comand.png](screenshots/lsblk-main-comand.png) 
+
+For more details:
+![Installing & particions](docs/partitions-configuration.md)
 
 
-### Base System Configuration
+### 4.2 Base System Administration
 
-The objective of this phase was to prepare controlled Linux base before installing network and web services. The configuration focused on package maintenance, system identity, time settings, user roles, privileges and filesystem permissions. These controls are important because services such as SSH and NGINX depend on a correctly configured operating system and a clear access model.
+Before installing network and web services, I prepared the base Linux system. This phase covered package maintenance, system identity, time configuration, user roles and access control.
 
+These tasks provide a controlled operating system before installing hte services and other configuration.
 
 **1. Package maintenance**
 APT uses the package information from the configured repositories to install and update software. Updating this information before installing the services helps to avoid versioning issues during the installation of the services. The utility used is:
@@ -133,42 +139,23 @@ APT uses the package information from the configured repositories to install and
 sudo apt-get update && sudo apt-get upgrade
 ```
 
-The folloing command is used to check for the new updates; in this case, 4 updates are pending.
-
-![List packets](screenshots/list-packets.png)
-
-Fix these conflicts by running `sudo apt-get dist-upgrade` Checking again:
+To fix conflicts when the packets is running I use this command `sudo apt-get dist-upgrade`. Now checking again:
 
 ![list upgradable](screenshots/list-upgradable.png)
 
 
 **2. System identity, timezone and locale configuration**
 
-The server was configured with a clear system identity and the correct time settings. The hostname selected for the server is:
+The server hostname, timezone and locale were configured before deploying services. Is important that time is set correctly, to ensure the consistency of logs, SSH sessions and security events that rely of timestamps.
 
-```bash
-
-```
-
-Correct time configuration is important for system administration because logs, SSH connections, security events and troubleshooting depend on accurate timestamps. A clear hostname is also important because it allows administrators to identify the system correctly in logs and remote sessions.
-
-The command used to list the complete horarie zone and for change the correct region are:
-
-```bash
-timedatectl list-timezones
-```
-The command used to set up the region is:
-
-```bash
-timedatectl set-timezone Europe/Madrid
-```
-The final configuration was checked with
+The final configuration was validated with timedatectl and locale information.
 
 ![timedatectl-locale-a](screenshots/timedatectl-locale-a2.png)
 
-**3. Account defaults and role design.**
 
-The server uses separate accounts and groups for different responsibilities.
+**3. User and group administration**
+
+The server use separate users and groups were created for different responsibilities:
 
 | User | Gropup | Responsibility |
 | ---- | ------ | -------------- |
@@ -176,41 +163,15 @@ The server uses separate accounts and groups for different responsibilities.
 | dev | developers | Application development |
 | ops | operators | Monitoring |
 
-The purpose of this design is to separate responsibilities instead of giving the same permissions to every user.
+This design separates responsibilities instead of giving the same permissions to every account.
 
-Linux controls access to files and system resources through users, groups, ownership and read, write and execute permissions. This provides the base for applying the principle of least privilege.
+Linux stores user and group information in /etc/passwd, /etc/shadow and /etc/group. LPIC-1 Objective 107.1 covers the creation, modification and administration of these accounts.
 
-The administrator account was checked before creating the additional roles.
-
-Checking the identity and privilege of current user:
-
-![check-curent-user](screenshots/check-current-user.png)
-
-Creating the groups and checking. The GID identify the number asigned automatly
-
-![creating-groups](screenshots/creating-groups.png)
-
-Now modify the admin acounto to add the administrator to admin group and add the users to theis respective group:
-
-![add-admin-add-users](screenshots/add-admin-add-users.png)
-
-The parámeters used are:
-
-- -a: 
-- -G: add the group
-- -m: create automatly the personal directory of user and copy the file from /etc/skel.
-- -U: create a privete group with the same name of user.
-- -s: asign a user to a asign directoy 
-
-The final parameter instructs the system that this user should be logged in directly to Bash upon logging in. This configuration is stored in the /etc/passwd directory. This is used for service accounts that should not have access to the terminal.
-
-now asigne passwords to users:
-
-![add-passwd-to-users](screenshots/add-passwd-to-users.png)
-
-Finally, chech the .... and check the state of passwords of users
+The final account configuration was validated with:
 
 ![check-groups-and-users](screenshots/check-groups-and-users.png)
+
+Password ageing and account status were also checked:
 
 ![chage-l-dev-ops](screenshots/chage-l-dev-ops.png)
 
@@ -218,94 +179,12 @@ Finally, chech the .... and check the state of passwords of users
 
 
 
-### Network Configuration
+### 4.3 Network Administration
 
-The network architecture was designed to separate systems according to their security needs.
+After preparing the base Linux system, the next phase was to configure and validate the network connectivity required by the design defined in Section 2.
 
-The main requirements used for this design are:
+This phase focused on interface configuration, static addressing, routing, DNS resolution and connectivity tests. The objective was to ensure that each system could communicate only through the correct network path before applying firewall security policies.
 
-- R07: administration must use a separate Management Network.
-- NET.1.1.A4: the network must be separated into at least an Internal Network, a DMZ and external connections. Communication between these zones must pass through firewalls.
-- NET.1.1.A10: services accessible from the Internet must be placed in a DMZ.
-- NET.1.1.A23: systems with different protection needs should be placed in different network segments.
-
-Based on these requirements, the Web Server is placed in the DMZ because it will provide services to external users. Administrative systems are separated in the Management Network, while development and internal services are placed in the Internal Network.
-
-A VLSM addressing plan was used to assign only the required address space to each network:
-
-| Network | Subnet | Required hosts | Usable addresses | Purpose |
-|---|---|---:|---:|---|
-| Internal | `10.0.0.0/27` | 16 | 30 | Development and internal systems |
-| DMZ | `10.0.0.32/28` | 8 | 14 | Internet-facing services |
-| Management | `10.0.0.48/29` | 4 | 6 | Infrastructure administration |
-
-The planned topology is:
-
----
-### Network Configuration
-
-The network architecture was designed to separate systems according to their security needs.
-
-The main requirements used for this design are:
-
-- R07: administration must use a separate Management Network.
-- NET.1.1.A4: the network must be separated into at least an Internal Network, a DMZ and external connections. Communication between these zones must pass through firewalls.
-- NET.1.1.A10: services accessible from the Internet must be placed in a DMZ.
-- NET.1.1.A23: systems with different protection needs should be placed in different network segments.
-
-Based on these requirements, the Web Server is placed in the DMZ because it will provide services to external users. Administrative systems are separated in the Management Network, while development and internal services are placed in the Internal Network.
-
-A VLSM addressing plan was used to assign only the required address space to each network:
-
-| Network | Subnet | Required hosts | Usable addresses | Purpose |
-|---|---|---:|---:|---|
-| Internal | `10.0.0.0/27` | 16 | 30 | Development and internal systems |
-| DMZ | `10.0.0.32/28` | 8 | 14 | Internet-facing services |
-| Management | `10.0.0.48/29` | 4 | 6 | Infrastructure administration |
-
-The planned topology is:
-
-```mermaid
-flowchart TD
-
-    INTERNET([Internet])
-    LIBVIRT["libvirt gateway<br/>192.168.122.1/24"]
-
-    FW1{{"FW1 - Firewall<br/>WAN: 192.168.122.x/24<br/>DMZ: 10.0.0.33/28"}}
-
-    subgraph DMZ["DMZ - 10.0.0.32/28 - 8 required hosts"]
-        WEB["Web Server<br/>10.0.0.34/28"]
-    end
-
-    FW2{{"FW2 - Firewall<br/>DMZ: 10.0.0.46/28<br/>Internal: 10.0.0.1/27<br/>Management: 10.0.0.49/29"}}
-
-    subgraph INTERNAL["Internal Network - 10.0.0.0/27 - 16 required hosts"]
-        DEV["Developer<br/>10.0.0.2/27"]
-        DB["Database<br/>10.0.0.3/27"]
-    end
-
-    subgraph MANAGEMENT["Management Network - 10.0.0.48/29 - 4 required hosts"]
-        ADMIN["Admin<br/>10.0.0.50/29"]
-        OPS["Operator<br/>10.0.0.51/29"]
-    end
-
-    INTERNET --> LIBVIRT
-    LIBVIRT --> FW1
-    FW1 --> WEB
-    WEB --> FW2
-
-    FW2 --> DEV
-    FW2 --> DB
-    FW2 --> ADMIN
-    FW2 --> OPS
-
-    style DMZ stroke-dasharray:8 5,stroke-width:2px
-    style INTERNAL stroke-dasharray:8 5,stroke-width:2px
-    style MANAGEMENT stroke-dasharray:8 5,stroke-width:2px
-
-```
-
-In this case, the web server work as a reverse proxy located behind the FW1 firewall, redirecting client requests to the relevant server on the internal network.
 
 
 **1. Create the virtual network segments**
@@ -331,13 +210,13 @@ The Web Server uses Netplan to keep its network configuration persistent after a
 
 The Web Server was assigned the address `10.0.0.34/28` in the DMZ network `10.0.0.32/28`.
 
-A temporary DHCP interface is also maintained during the current implementation to provide Internet and SSH access until FW1 and FW2 are deployed.
+The Web Server uses only its DMZ interface. Its default route points to FW1 at 10.0.0.33, while routes to the Internal and Management networks use FW2 at 10.0.0.46
 
 The final configuration was checked to confirm the assigned interfaces, addresses and routes.
 
 ![Netplan network configuration](screenshots/network-created.png)
 
-**3. Host firewall configuration**
+**3. Web Server local firewall**
 
 UFW was configured as the local firewall of the Web Server. The objective is to expose only the services required by the server and block all other incoming traffic.
 
@@ -353,37 +232,11 @@ This reduces the exposed network surface and applies a whitelist model: traffic 
 ![UFW firewall rules](screenshots/ufw-rules.png)
 
 For more details:
-![configure-network.md](docs/configure-network.md)
+![configure-network.md](docs/configure-network-web-server.md)
 
 
-### Remote Administration and Server Hardening
 
-Remote administration of the Web Server is provided through OpenSSH. SSH was selected because it provides encrypted and authenticated remote access to the Linux system.
-
-The administration account `nuno` uses public-key authentication. The private key remains on the administrator machine, while only the public key is stored on the Web Server in `~/.ssh/authorized_keys`. LPIC-1 describes public-key authentication as the preferred method for remote SSH access and explains the use of `ssh-keygen`, `ssh-copy-id` for  to generate and copy the public key and `authorized_keys` as the file in which to store it.
-
-SSH access has been secured using a specific configuration file:
-
-`/etc/ssh/sshd_config.d/10-web-server-security.conf`
-
-The following controls were applied:
-
-- Direct SSH login as `root` is disabled.
-- Public-key authentication is enabled.
-- Password authentication is disabled.
-- SSH access is limited to the authorised accounts `nuno` and `dev`.
-
-These controls reduce the use of passwords, prevent direct remote access with the root account, and limit which local users can open an SSH session.
-
-The final network design allows the administrator to access SSH only from the Management Network. The developer account will use the their public-key authentication to deploy the web server code.
-
-![evidence-ssh-working.png](screenshots/evidence-ssh-working.png)
-
-For more details:
-![configure-ssh.md](docs/configure-ssh.md)
-
-
-### Web Services
+### 4.4 Web Services NGINX
 
 **1. NGINX installation**
 
@@ -438,7 +291,7 @@ Detailed implementation:
 
 
 
-### Installing and configure the firewalls of DMZ
+### 4.5 Installing and configure the firewalls of DMZ
 
 The DMZ firewall design is inspired by the **Cisco ASA model**, a traditional stateful firewall used to combine routing, NAT and traffic filtering between different security zones.
 
@@ -535,6 +388,32 @@ Cisco defines the ASA as a stateful firewall that can operate in Layer 3 routed 
 
 
 
+
+### 4.6 Remote Administration and Server Hardening
+
+Remote administration of the Web Server is provided through OpenSSH. SSH was selected because it provides encrypted and authenticated remote access to the Linux system.
+
+The administration account `nuno` uses public-key authentication. The private key remains on the administrator machine, while only the public key is stored on the Web Server in `~/.ssh/authorized_keys`. LPIC-1 describes public-key authentication as the preferred method for remote SSH access and explains the use of `ssh-keygen`, `ssh-copy-id` for  to generate and copy the public key and `authorized_keys` as the file in which to store it.
+
+SSH access has been secured using a specific configuration file:
+
+`/etc/ssh/sshd_config.d/10-web-server-security.conf`
+
+The following controls were applied:
+
+- Direct SSH login as `root` is disabled.
+- Public-key authentication is enabled.
+- Password authentication is disabled.
+- SSH access is limited to the authorised accounts `nuno` and `dev`.
+
+These controls reduce the use of passwords, prevent direct remote access with the root account, and limit which local users can open an SSH session.
+
+The final network design allows the administrator to access SSH only from the Management Network. The developer account will use the their public-key authentication to deploy the web server code.
+
+![evidence-ssh-working.png](screenshots/evidence-ssh-working.png)
+
+For more details:
+![configure-ssh.md](docs/configure-ssh.md)
 
 
 

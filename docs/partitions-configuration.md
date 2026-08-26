@@ -1,93 +1,295 @@
-## This file shows the partition configuration.
+## Operating System Installation
 
-El disco virtual `/dev/vda`, de 25 GiB, se configuró manualmente mediante una tabla de particiones GPT y LVM. La siguiente captura muestra el diseño definido antes de confirmar la instalación:
+This document explains how I installed and prepared the Ubuntu Server system used by the Web Server.
+
+The objective was not only to install Linux, but also to create a storage layout that can be maintained and extended later.
+
+---
+
+## 1. Virtual Machine Preparation
+
+I created the virtual machine with QEMU/KVM and managed it through libvirt and virt-manager.
+
+The initial resources were:
+
+| Resource | Configuration |
+|---|---|
+| Operating System | Ubuntu Server 24.04 LTS |
+| CPU | 2 vCPU |
+| RAM | 4 GiB |
+| Disk | 25 GiB |
+| Firmware | BIOS |
+| Virtualisation | QEMU/KVM |
+
+I used Ubuntu Server without a graphical desktop because this system is designed to run as a server.
+
+During installation, the VM used DHCP through the libvirt NAT network. This provided temporary network access for package installation.
+
+---
+
+## 2. Operating System Installation
+
+The installation followed these main steps:
+
+1. Create the virtual machine in virt-manager.
+2. Assign 2 vCPU, 4 GiB RAM and a 25 GiB disk.
+3. Select BIOS firmware.
+4. Attach the Ubuntu Server 24.04 LTS ISO.
+5. Configure language and keyboard.
+6. Use DHCP for the initial network configuration.
+7. Use the default Ubuntu package mirror.
+8. Create the initial administrative user.
+9. Configure the disk manually.
+10. Install OpenSSH Server.
+11. Install Ubuntu and GRUB.
+12. Restart the VM and remove the installation ISO.
+
+The storage configuration was created manually because I wanted to control the partitions, mount points and LVM layout.
+
+---
+
+## 3. Physical Disk Layout
+
+The virtual disk `/dev/vda`, with 25 GiB, uses a GPT partition table.
+
+Before starting the installation, I created this layout:
 
 ![Storage Configuration](screenshots/storage-configuration.png)
 
-En primer lugar, GPT divide `/dev/vda` en tres particiones físicas:
+Three physical partitions were created:
 
-- Se ha creado una particion `/dev/vda1` de 1 MiB para BIOS boot utilizada por GRUB. Es necesaria porque la máquina virtual utiliza firmware BIOS junto con una tabla GPT. No contiene un sistema de archivos ni se monta en ningún directorio.
+| Partition | Size | Purpose |
+|---|---:|---|
+| `/dev/vda1` | 1 MiB | BIOS boot partition for GRUB |
+| `/dev/vda2` | 1 GiB | ext4 filesystem mounted on `/boot` |
+| `/dev/vda3` | ~24 GiB | LVM Physical Volume |
 
-- En la particion `/dev/vda2` de 1 GiB se montada en `/boot`. Este directorio almacena el kernel, las imágenes `initramfs` y los archivos necesarios para el proceso de arranque.
+**`/dev/vda1` - BIOS boot:** The VM uses BIOS firmware together with GPT. For this configuration, GRUB needs a small BIOS boot partition. It does not contain a filesystem and it is not mounted.
 
-- La partición `/dev/vda3` de aproximadamente 24 GiB, se configura como volumen físico de LVM para administrar de forma flexible el espacio restante.
+**`/dev/vda2` - `/boot`:** I created a separate 1 GiB ext4 filesystem for `/boot`. It stores the Linux kernel, `initramfs` images and GRUB files.
 
-La estructura física se valida con:
+**`/dev/vda3` - LVM:** The remaining space was assigned to LVM. This allows the storage to be managed more flexibly than using only fixed partitions.
 
-![Table of partitions](screenshots/fdisk-dev-vda.png)
+After installation, I checked the physical disk with:
 
+```bash
+sudo fdisk -l /dev/vda
+lsblk -f
+```
 
+`fdisk` confirms the GPT partition table and physical partitions. `lsblk` shows the relationship between partitions, LVM volumes, filesystems and mount points.
 
-Sobre `/dev/vda3` se creó el grupo de volúmenes `vg-ubuntu`. Dentro de él se definieron los siguientes volúmenes lógicos:
+![Physical partitions](screenshots/fdisk-dev-vda.png)
 
-- Por un lado se crea un volumen lógico independiente para lv-root de 10 GiB, montado en /, contiene el sistema operativo, sus programas y la estructura principal de directorios. Se asignaron 10 GiB porque es suficiente para la instalación inicial de Ubuntu Server y las herramientas previstas, teniendo en cuenta que `/var` dispone de almacenamiento independiente.
+---
 
-- Por otro lado, el volumen lógico `lv-var` — 8 GiB, montado en `/var` contiene datos que pueden crecer continuamente, como registros del sistema, logs de servicios y cachés. Si `/var` comparte espacio con `/` y lo consume completamente, pueden fallar servicios, actualizaciones y otras operaciones esenciales. Su separación limita ese crecimiento y evita que ocupe directamente el sistema de archivos raíz.
+## 4. LVM Configuration
 
-- La partición`lv-swap` de 2 GiB se utiliza como espacio de intercambio cuando existe presión sobre la memoria RAM. 
+I configured `/dev/vda3` as the LVM Physical Volume and created the volume group:
 
-- Por último se reservaron aproximadamente 4 GiB libres  dentro de `vg-ubuntu` para poder ampliar de forma dinámica `/` o `/var` mediante LVM.
+```text
+vg-ubuntu
+```
 
-A continuación muestra la configuración de LVM y la activación de swap se muestra en las siguientes captura:
+Inside this volume group, I created:
 
-![Show swap](screenshots/lvm-pvs-vgs-lvs.png)
+| Logical Volume |   Size | Mount point / use |
+| -------------- | -----: | ----------------- |
+| `lv-root`      | 10 GiB | `/`               |
+| `lv-var`       |  8 GiB | `/var`            |
+| `lv-swap`      |  2 GiB | Swap              |
+| Free space     | ~4 GiB | Future expansion  |
 
-La captura confirma la configuración de LVM: la partición `/dev/vda3` se utiliza como volumen físico del grupo `vg-ubuntu`, con una capacidad aproximada de 24 GiB. Dentro del grupo se crearon tres volúmenes lógicos: `lv-root` de 10 GiB, `lv-var` de 8 GiB y `lv-swap` de 2 GiB. Además, quedan aproximadamente 4 GiB libres para futuras ampliaciones.
+The LVM structure is:
 
-![Show swap](screenshots/swap-&-free.png)
+```text
+/dev/vda3
+    |
+    +-- Physical Volume
+            |
+            +-- vg-ubuntu
+                    |
+                    +-- lv-root  -> /
+                    +-- lv-var   -> /var
+                    +-- lv-swap  -> swap
+                    +-- ~4 GiB free
+```
 
-La captura confirma que el volumen de swap de 2 GiB está activo como `/dev/dm-2` y que, en ese momento, no estaba siendo utilizado. El comando `free -h` muestra además que la máquina dispone de aproximadamente 3,7 GiB de RAM, de los cuales solo se usan unos 410 MiB, por lo que el sistema mantiene suficiente memoria disponible y no necesita recurrir al espacio de intercambio.
+I validated this configuration with:
 
+```bash
+sudo pvs
+sudo vgs
+sudo lvs
+```
 
+![LVM configuration](screenshots/lvm-pvs-vgs-lvs.png)
 
+---
 
+## 5. Root Filesystem
 
+`lv-root` has 10 GiB and is mounted on `/`.
 
+It contains the operating system, installed applications and directories that do not use a separate filesystem.
 
+Because `/var` has its own logical volume, the root filesystem does not need to store the main variable service data.
 
+---
 
+## 6. Separate `/var` Filesystem
 
+I created `lv-var` with 8 GiB and mounted it on `/var`. This directory contains data that can grow over time, such as:
 
+* system logs;
+* NGINX logs;
+* package caches;
+* temporary service data.
 
+If `/var` uses all available space when it shares the root filesystem, important system operations can fail.
 
+A separate `/var` limits this risk because its growth does not directly consume all free space on `/`.
 
+This separation does not replace log rotation or disk monitoring.
 
+---
 
+## 7. Swap
 
-La siguiente captura muestra el diseño de almacenamiento definido durante la instalación de Ubuntu Server:
+I created a 2 GiB logical volume called:
 
-![Storage Configuration](docs/storage-configuration.png)
+```text
+lv-swap
+```
 
+Swap provides additional virtual memory when the system has memory pressure.
 
-Primer lugar, GPT divide el disco /dev/vda en particiones físicas:
-/dev/vda1: partición BIOS boot de 1 MiB.
-/dev/vda2: partición ext4 montada en /boot.
-/dev/vda3: partición utilizada como volumen físico de LVM.
+I verified that it was active with:
 
-Se ha creado una particion /dev/vda1 ...
-También se creó una partición independiente de 1 GiB, formateada con ext4 y montada en /boot. Este sistema de archivos almacena el kernel, las imágenes initramfs y los archivos necesarios para el proceso de arranque.
+```bash
+swapon --show
+free -h
+```
 
+`swapon --show` confirms the active swap device. `free -h` shows physical memory and swap usage.
 
-Luego /dev/vda3 se utiliza LVM para proporcionar ....... y lo divide en volúmenes lógicos:
+---
 
-- Por un lado se crea un volumen lógico independiente para lv-root de 10 GiB, montado en /, 
+## 8. Reserved LVM Capacity
 
-- Por otro lado, se crea otro volumen lógico independiente para /var. Este directorio contiene datos que pueden crecer continuamente, como registros del sistema o logs de servicios. Si /var comparte el mismo sistema de archivos que / y consume todo el espacio disponible, pueden fallar servicios, actualizaciones y otras operaciones esenciales del sistema. Al separarlo, el crecimiento de estos datos queda limitado y se reduce el riesgo de que afecte directamente al sistema de archivos raíz.
+I intentionally left approximately 4 GiB free inside `vg-ubuntu`.
 
-- Por último se crea el volumn lógico lv-swap de 2 GiB, utilizado como espacio de intercambio
+This space can later be used to extend `/` or `/var` without changing the physical partition table.
 
+For example, if NGINX logs require more space in the future, `lv-var` can be extended using this reserved capacity.
 
+This is one of the main reasons why I selected LVM.
 
+---
 
+## 9. Persistent Mounts
+
+After installation, I checked the persistent filesystem configuration:
+
+```bash
+grep -vE '^[[:space:]]*#|^[[:space:]]*$' /etc/fstab
+```
+
+This verifies that the required filesystems and swap are configured to be available after reboot.
+
+The expected persistent storage includes:
+
+* `/`;
+* `/boot`;
+* `/var`;
+* swap.
+
+---
+
+## 10. GRUB Validation
+
+GRUB was installed by the Ubuntu installer.
+
+After the first boot, I verified the bootloader instead of reinstalling it:
+
+```bash
+dpkg -l grub-pc grub-common | grep '^ii'
+sudo update-grub
+ls -lh /boot/grub/grub.cfg
+```
+
+These commands confirm that GRUB is installed and that its configuration can detect the installed kernel and `initramfs`.
+
+`/boot/grub/grub.cfg` is generated automatically and should not be edited directly.
+
+---
+
+## 11. Initial System Update
+
+After the first successful boot, I updated the package information and installed available updates:
+
+```bash
+sudo apt update
+apt list --upgradable
+sudo apt upgrade
+```
+
+I then checked the package state:
+
+```bash
+sudo dpkg --audit
+```
+
+This confirms that there are no incomplete package installations.
+
+---
+
+## 12. Final Validation
+
+I performed a final check of the installed system.
+
+**Operating system and virtualisation**
+
+```bash
+hostnamectl
+cat /etc/os-release
+uname -r
+systemd-detect-virt
+```
+
+### Storage
+
+```bash
+sudo fdisk -l /dev/vda
+lsblk -f
+sudo pvs
+sudo vgs
+sudo lvs
+swapon --show
+```
+
+These checks confirm that the operating system, boot configuration, partitions, LVM volumes, filesystems and swap match the planned design.
+
+---
+
+## 13. Result
+
+The final storage design provides:
+
+* a dedicated BIOS boot partition for GRUB;
+* a separate `/boot` filesystem;
+* LVM for flexible storage management;
+* a separate `/var` filesystem;
+* active swap;
+* approximately 4 GiB reserved for future LVM expansion;
+* persistent filesystems across reboots.
+
+This configuration gives the server a clear storage structure and allows future capacity changes without redesigning the complete virtual disk.
 
 
 ## References
 
-The following chapters from LPIC-1 have been used for this phase.
-
-- 102.1 Partitioning scheme design
-- 102.2 Install a boot manager.
-- 102.4 Debian package management.
-- 102.6 Linux as a virtualized system.
-- 104.1 Creating partitions and file systems
-- 104.3 Mounting and /etc/fstab
+- LPIC-1 - Objective 102.1: Design Hard Disk Layout. mount points, swap and LVM. 
+- LPIC-1 - Objective 102.2: Install a Boot Manager. GRUB and boot configuration
+- LPIC-1 - Objective 104.1: Create Partitions and Filesystems. GPT, filesystems and swap.
+- LPIC-1 — Objective 104.3: Control Mounting and Unmounting of Filesystems: persistent mounts and `/etc/fstab`.
