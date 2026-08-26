@@ -1356,23 +1356,6 @@ The most useful screenshots are the routing tables because they show how each se
 
 ---
 
-# 13. Next stage
-
-After the routing configuration is validated, I configure:
-
-* nftables on FW1.
-* nftables on FW2.
-* Default deny policies.
-* Stateful filtering.
-* NAT/PAT on FW1.
-* HTTPS DNAT to the web server.
-* SSH access only from the Management network.
-* Network segmentation tests.
-* Allowed and denied traffic tests.
-* Troubleshooting with packet captures and firewall counters.
-
----
-
 ## Resources
 
 [1] Linux Professional Institute, *LPIC-2 Objectives*, Topic 203, “Advanced Networking Configuration,” Objectives 203.1–203.3.
@@ -1393,22 +1376,5 @@ After the routing configuration is validated, I configure:
 
 [9] libvirt Project, “virsh,” commands `net-list`, `net-dumpxml` and `domiflist`.
 
-```
 
-Hay **dos decisiones importantes** en este tutorial:
-
-1. **No fijo todavía `192.168.122.119` como IP estática de FW1.** Mantengo la WAN por DHCP, que coincide con tu diseño original `192.168.122.x`. Más adelante podemos crear una *DHCP reservation* en libvirt si queremos que FW1 conserve siempre la misma dirección. Esto evita ahora un posible conflicto con el DHCP de `default`.
-
-2. **`192.168.122.236` desaparece del diseño final del web server.** El servidor pasa a depender de `10.0.0.34/28` y su default gateway pasa a ser FW1 (`10.0.0.33`). Así ya no existe el bypass directo hacia la WAN.
-
-Además, una corrección importante para las referencias: en el **material LPIC-2 actual que tienes**, la configuración avanzada de red aparece como **Topic 203** y routing/packet filtering como **211.1**. El libro LPIC-2 antiguo que también tienes usa la numeración **205** y **212.1**. Para el README principal usaría la numeración actual. El objetivo 203 cubre interfaces, direcciones, rutas y troubleshooting, mientras que 211.1 incluye routing, IP forwarding, NAT y `nftables`. :contentReference[oaicite:0]{index=0} :contentReference[oaicite:1]{index=1}
-
-Las instrucciones Alpine usadas aquí están respaldadas por su documentación: `/etc/network/interfaces` para configuración persistente, `rc-service networking restart` para aplicarla, rutas estáticas con `up ip route ...`, y `net.ipv4.ip_forward=1` para convertir el sistema en router. :contentReference[oaicite:2]{index=2} Libvirt también confirma que una red sin `<forward>` puede funcionar como red aislada y que una VM conectada a ella puede actuar como router entre redes. :contentReference[oaicite:3]{index=3} Netplan soporta tanto la ruta `default` como rutas estáticas específicas, que es precisamente lo que usamos en el web server. :contentReference[oaicite:4]{index=4}
-
-:contentReference[oaicite:5]{index=5}  
-:contentReference[oaicite:6]{index=6}  
-:contentReference[oaicite:7]{index=7}  
-:contentReference[oaicite:8]{index=8}  
-:contentReference[oaicite:9]{index=9} 
-```
 

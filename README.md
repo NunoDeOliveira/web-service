@@ -17,7 +17,7 @@ responsible for designing, provisioning, securing and validating the systems and
 The objective is to provide the development team with a secure deployment target while retaining administrative control and isolating the public-facing service from protected networks.
 
 
-1. Linux system provisioning: preparing of Ubuntu Server 24.04 on KVM/libvirt, including GPT/LVM storage, package management, system identity, time synchronisation and persistent network configuration.
+1. Linux system provisioning: preparing of Ubuntu Server 24.04 on KVM/libvirt, including GPT/LVM storage, package management, system identity and time synchronisation..
 2. System administration: management of users, groups, sudo privileges, filesystem ownership and permissions, SSH public-key authentication, system services and host firewall rules.
 3. Network segmentation and firewalling: define a router-gateway, DMZ, Internal and Management zones, together with static addressing, routing, IPv4 forwarding and two Alpine Linux firewalls using nftables for stateful packet filtering, default-deny policies, DNAT and SNAT. 
 4. Services and Security: configuration of NGINX, controlled permissions for web content deployment, HTTP-to-HTTPS redirection, TLS 1.2 and TLS 1.3, and HTTP security headers.
@@ -31,16 +31,25 @@ The objective is to provide the development team with a secure deployment target
 
 ## Table of Contents
 
-1. [Methodology & Source Selection](#1-methodology--source-selection)
-2. [Requirements of Web Server](#2-requirements-of-web-server)
-3. [Architecture & Design](#3-architecture--design)
-4. [Phases of implementation](#5-phases-of-implementation)
-- [Install operating system for Web Server](4.1-install-operating-system-for-Web-Server)
-- Base System Administration
-5. [Quick Start](#6-quick-start)
-6. [Operations, Monitoring, Troubleshooting & Controlled Failure Scenarios](#6-operation-monitoring-troubleshooting--controlled-failure-scenarios)
-7. [Automation and Cloud Deployment](#7-automation-and-cloud-deployment)
-8. [Official References](#9-official-references)
+1. [Project Approach and Requirements](#1-project-approach-and-requirements)
+2. [Design and Topology](#2-design-and-topology)
+   - [2.1 Network Design](#21-network-design)
+   - [2.2 Topology](#22-topology)
+3. [Implementation Phases](#3-implementation-phases)
+   - [3.1 Operating System Installation](#31-operating-system-installation)
+   - [3.2 Base System Administration](#32-base-system-administration)
+   - [3.3 Network Administration](#33-network-administration)
+   - [3.4 Web Services — NGINX](#34-web-services--nginx)
+4. [DMZ Firewall Infrastructure](#4-dmz-firewall-infrastructure)
+   - [4.1 Firewall FW1](#41-firewall-fw1)
+   - [4.2 Firewall FW2](#42-firewall-fw2)
+   - [4.3 Connectivity between FW1 and FW2](#43-connectivity-between-fw1-and-fw2)
+   - [4.4 Firewall Security Controls](#44-firewall-security-controls)
+5. [Remote Administration and Server Hardening](#5-remote-administration-and-server-hardening)
+6. [Operations, Monitoring, Troubleshooting and Controlled Failure Scenarios](#6-operations-monitoring-troubleshooting-and-controlled-failure-scenarios)
+7. [Quick Start](#7-quick-start)
+8. [Future Work](#8-future-work)
+9. [References](#9-references)
 
 ---
 
@@ -91,9 +100,9 @@ The Internal network is protected behind FW2. It is prepared for future backend 
 ---
 
 
-## 4. Implementation Phases of Web Server
+## 3. Implementation Phases of Web Server
 
-### 4.1 Install operating system for Web Server
+### 3.1 Web Server operating System Installation
 
 The web server was deployed on a Linux virtual machine with the following specifications:
 
@@ -116,10 +125,10 @@ The remaining disk space was assigned to an LVM physical volume. LVM was used to
 ![lsblk main comand.png](screenshots/lsblk-main-comand.png) 
 
 >For more details:
-![Installing & particions](docs/partitions-configuration.md)
+[Operating System Installation](docs/partitions-configuration.md)
 
 
-### 4.2 Base System Administration
+### 3.2 Base System Administration of Web Server
 
 Before installing network and web services, I prepared the base Linux system. This phase covered package maintenance, system identity, time configuration, user roles and access control.
 
@@ -131,10 +140,6 @@ APT uses the package information from the configured repositories to install and
 ```bash
 sudo apt-get update && sudo apt-get upgrade
 ```
-
-To fix conflicts when the packets is running I use this command `sudo apt-get dist-upgrade`. Now checking again:
-
-![list upgradable](screenshots/list-upgradable.png)
 
 
 **2. System identity, timezone and locale configuration**
@@ -172,7 +177,7 @@ Password ageing and account status were also checked:
 
 
 
-### 4.3 Network Administration
+### 3.3 Network Administration
 
 After preparing the base Linux system, the next phase was to configure and validate the network connectivity required by the design defined in Section 2.
 
@@ -218,24 +223,27 @@ The firewall uses a default-deny policy for incoming connections and allows only
 - `80/tcp` for HTTP.
 - `443/tcp` for HTTPS.
 - `22/tcp` from the Management Network (`10.0.0.48/29`) for administration.
-- `22/tcp` from the authorised developer host (`10.0.0.2`) for application deployment.
+- `22/tcp` from the authorised developer host (`10.0.0.2`) for application deployment (without implementing).
 
 This reduces the exposed network surface and applies a whitelist model: traffic is blocked unless it is explicitly required.
 
 ![UFW firewall rules](screenshots/ufw-rules.png)
 
 >For more details:
-![configure-network.md](docs/configure-network-web-server.md)
+[Network Configuration](docs/configure-network-web-server.md)
 
 
 
-### 4.4 Web Services NGINX
 
-**1. NGINX installation**
+### 3.4 Web Services - NGINX
 
-![Nginx initial page](screenshot/page-nginx.png)
+After completing the network configuration, I deployed NGINX as the public web service in the DMZ. The installation and basic server configuration follow *LPIC-2 Objective 208.4: Implementing NGINX as a web server and a reverse proxy*, which covers NGINX configuration, server blocks, document roots and configuration validation.
+
+The objective of this phase was to provide a controlled HTTP/HTTPS service, prepare the content permissions and validate the configuration before applying changes.
 
 ---
+
+**1. Configure NGINX service**
 
 Before install Nginx, the next step will be to set the directory permissions of `/var/www/northtech-ops` for deploying the web service code. This directory must remain under root administrative control root, while the group of developers must be able to modify web content. Enabling SGID on the directory allow new files and subdirectories automatically get the 'developers' group. 
 
@@ -243,11 +251,10 @@ Before install Nginx, the next step will be to set the directory permissions of 
 
 In the capture is checked the permissions of configuration directories to confirm that they remain under `root` control. Then, `/var/www/northtech-ops` was assigned to the `developers` group, group access was enabled, and then SGID was applied so new files and directories inherit the `developers` group. The final check confirms the `root:developers` ownership and the SGID permission.
 
----
 
 It was created a NGINX server block for *NorthTech Operations* instead of using the default Ubuntu website. The site configuration is stored in `/etc/nginx/sites-available/northtech` and enabled through `/etc/nginx/sites-enabled/`.
 
-The configuration separates the global NGINX settings from the application-specific settings and maps the website to `/var/www/northtech`. This makes the service easier to maintain, audit and later extend with HTTPS and reverse-proxy functions.
+The configuration separates the global NGINX settings from the application-specific settings and maps the website to `/var/www/northtech-ops`. This makes the service easier to maintain, audit and later extend with HTTPS and reverse-proxy functions.
 
 Before applying any configuration change, `nginx -t` is used to validate the configuration. The service is reloaded only after a successful test, reducing the risk of an outage caused by a configuration error.
 
@@ -255,7 +262,7 @@ Before applying any configuration change, `nginx -t` is used to validate the con
 
 ![Final Web Site](screenshots/final-web-site.png)
 
-
+---
 
 **2. HTTP/HTTPS configuration**
 
@@ -278,57 +285,29 @@ The implementation was validated with `curl` and OpenSSL. The tests confirm:
 ![TLS validation](screenshots/TLS-version-cipher-certificate_verification.png)
 
 
-Detailed implementation: 
-![NGINX Service Setup](docs/nginx-service-setup.md)
+>Detailed implementation: 
+[NGINX Service Setup](docs/nginx-service-setup.md)
 
 
 
+## 4. DMZ Firewall Infrastructure
 
-## 5 Implementation Phase of DMZ
+After implementing the network segments, I deployed two routed firewalls to control communication between the External, DMZ, Internal and Management networks.
 
-The DMZ firewall design is inspired by the **Cisco ASA model**, a traditional stateful firewall used to combine routing, NAT and traffic filtering between different security zones.
+The DMZ firewall design is inspired by the **Cisco ASA model**. Cisco ASA can operate as a stateful firewall in Layer 3 routed mode, where it connects different networks and applies security policies between them. This model also supports an Outside–DMZ–Inside architecture, where public services can be placed in a DMZ without directly exposing internal systems.
 
-For this project, Alpine Linux + nftables was selected to reproduce this model with a lightweight and auditable Linux solution. The firewalls provide stateful filtering, routing and network segmentation between the WAN, DMZ, Internal and Management networks.
-
-**1. Firewall FW1**
-
-
-
-NAT is used on FW1 to allow private networks to access external networks through the firewall WAN address. It also allows controlled publication of DMZ services, such as HTTPS, without exposing the internal addressing directly.
-
-
-![Fireall fw1 network configuration](screenshots/firewalls/net-conf-fw1.png)
-
-
-
-**2. Firewall FW2**
-
-
-![Fireall fw2 network configuration](screenshots/firewalls/net-conf-fw2.png)
-
-
-![Conectivity between firewalls](screenshots/conectivity-between-fw1-fw2.png)
-
-
-
-
-
-### Installing and configuring the DMZ firewalls
-
-The DMZ firewall design is inspired by the **Cisco ASA model**, where different network zones are connected through routed firewall interfaces.
-
-For this project, Alpine Linux was selected as a lightweight operating system. FW1 and FW2 are configured first as Linux routers. Packet filtering, stateful rules and NAT are configured and validated later with nftables.
+For this project, I selected Alpine Linux and nftables to apply the same main concepts with a lightweight and auditable Linux solution. FW1 provides perimeter filtering and NAT between the External network and the DMZ, while FW2 protects the Internal and Management networks from the DMZ.
 
 ---
 
-#### 1. Firewall FW1
+### 4.1 Firewall FW1
 
-FW1 is the network boundary between the WAN and the DMZ.
+FW1 is the network boundary between the external and the DMZ.
 
 Its two interfaces are:
 
-- `eth0` — WAN: `192.168.122.2/24`
-- `eth1` — DMZ: `10.0.0.33/28`
+- `eth0` - external: `192.168.122.2/24`
+- `eth1` - DMZ: `10.0.0.33/28`
 
 The default route uses the libvirt gateway `192.168.122.1`. FW1 also has static routes to the Internal (`10.0.0.0/27`) and Management (`10.0.0.48/29`) networks through FW2 at `10.0.0.46`.
 
@@ -340,15 +319,15 @@ The capture verifies the WAN and DMZ addresses, the default gateway, the routes 
 
 ---
 
-#### 2. Firewall FW2
+### 4.2 Firewall FW2
 
 FW2 separates the DMZ from the Internal and Management networks.
 
 Its three interfaces are:
 
-- `eth0` — DMZ: `10.0.0.46/28`
-- `eth1` — Internal: `10.0.0.1/27`
-- `eth2` — Management: `10.0.0.49/29`
+- `eth0` - DMZ: `10.0.0.46/28`
+- `eth1` - Internal: `10.0.0.1/27`
+- `eth2` - Management: `10.0.0.49/29`
 
 Because FW2 is directly connected to these three networks, Linux creates a route for each network automatically. Its default route points to FW1 at `10.0.0.33`, which is used to reach networks outside these local segments.
 
@@ -360,7 +339,7 @@ The capture verifies the three network interfaces, the directly connected routes
 
 ---
 
-#### 3. Connectivity between FW1 and FW2
+### 4.3 Connectivity between FW1 and FW2
 
 After configuring both routers, bidirectional ICMP tests were performed across the DMZ network.
 
@@ -370,19 +349,86 @@ After configuring both routers, bidirectional ICMP tests were performed across t
 
 ![Connectivity between firewalls](screenshots/conectivity-between-fw1-fw2.png)
 
-This evidence confirms **Layer 3 connectivity between both firewall routers over the DMZ**. It validates the addressing and basic routing configuration before packet filtering rules are introduced.
+This evidence confirms Layer 3 connectivity between both firewall routers over the DMZ. It validates the addressing and basic routing configuration before packet filtering rules are introduced.
 
 These tests do not prove firewall filtering or NAT. Those controls are validated separately after the nftables configuration.
 
-
-#### 4. Configuration de firewalls
-
-Cisco defines the ASA as a stateful firewall that can operate in Layer 3 routed mode. In this mode, the firewall acts as a router, in exactly the same way as the FW1 and FW2 firewalls. Cisco explains that the ASA can operate according to the Outside – DMZ – Inside model, whereby public services can be placed in a DMZ to allow limited access from outside without directly exposing internal networks.
+>More details in:
+[Firewall Network Configuration](docs/configure-network-fw.md)
 
 
 
+### 4.4 Firewall Security Controls
 
-### 6. Remote Administration and Server Hardening
+**Stateful Firewall Policy with nftables**
+
+After validating the routing configuration, I applied nftables rules on FW1 and FW2.
+
+A stateful firewall tracks active connections and keeps information such as source address, destination address, protocol and port numbers. This allows the firewall to decide whether a packet belongs to an authorised connection or whether it is trying to start a new one [8].
+
+To implement this behaviour, nftables uses the Linux kernel Connection Tracking system. The operating system keeps a dynamic table in memory with the state of active connections.
+
+*Case 1 — The connection is already known*
+
+1. The firewall checks the connection tracking table.
+2. If the packet belongs to an authorised existing connection, it is classified as `Established`.
+3. The packet is allowed to continue without creating another specific rule for the return direction.
+
+This is the main idea of a stateful firewall: it remembers authorised connections and recognises their valid return traffic.
+
+*Case 2 — The connection is new*
+
+1. If the packet does not belong to an existing connection, it is classified as `New`.
+2. The firewall checks the security policy for its source, destination and service.
+3. If the connection is allowed, the firewall accepts it.
+4. From that moment, return packets belonging to the same communication can be recognised as `Established`.
+5. If the new connection is not explicitly allowed, it is blocked by the default `DROP` policy.
+
+*Case 3 — The traffic is related to an existing connection*
+
+Some traffic is not part of the original connection but is created because of an authorised connection.
+
+The firewall can classify this traffic as `Related` and allow it because it is linked to an existing valid communication.
+
+*Case 4 — The connection state is invalid*
+
+If the firewall cannot associate the packet with a valid connection, it can classify it as `Invalid`.
+
+This traffic is dropped because it does not belong to an authorised or recognised communication.
+
+
+**NAT on FW1**
+
+NAT is configured only on FW1 because it is the firewall connected to the External network.
+
+For incoming HTTPS traffic, FW1 uses DNAT. When a client connects to `192.168.122.2:443`, FW1 changes the destination address and forwards the connection to the Web Server at `10.0.0.34:443`.
+
+For outgoing traffic, FW1 uses SNAT/PAT. Private systems keep their internal addresses inside the infrastructure, but before the traffic leaves through FW1, the source address is changed to `192.168.122.2`.
+
+FW1 therefore performs two translations:
+
+- *DNAT:* External `192.168.122.2:443` → Web Server `10.0.0.34:443`.
+- *SNAT/PAT:* private source address → FW1 External address `192.168.122.2`.
+
+FW2 does not use NAT. It only routes and filters traffic between the DMZ, Internal and Management networks [x].
+
+
+**Firewall Validation and Persistence**
+
+Before applying the rules, the configuration was checked with nft -c. After loading it, nft list ruleset was used to verify the active policies, stateful rules, NAT and packet counters.
+
+The capture confirms the default DROP policy, the active filtering rules and the packet counters. The nftables configuration is also enabled at boot with OpenRC so the firewall rules remain active after a restart.
+
+Detailed firewall rules, deployment steps and ALLOW/DROP tests are documented in:
+
+
+>More details in:
+[Firewall Security Configuration](docs/configure-firewalls.md)
+
+
+
+
+### 5. Remote Administration and Server Hardening
 
 Remote administration of the Web Server is provided through OpenSSH. SSH was selected because it provides encrypted and authenticated remote access to the Linux system.
 
@@ -406,25 +452,14 @@ The final network design allows the administrator to access SSH only from the Ma
 ![evidence-ssh-working.png](screenshots/evidence-ssh-working.png)
 
 For more details:
-![configure-ssh.md](docs/configure-ssh.md)
-
-
-
-
-
-
-
-
-
-
-
+[SSH Configuration](docs/configure-ssh.md)
 
 
 
 ---
 
 
-## 5. Operation, Monitoring, Troubleshooting & Controlled Failure Scenarios
+## 6. Operation, Monitoring, Troubleshooting & Controlled Failure Scenarios
 
 This section contains only incidents that actually occurred during the implementation and validation of the server.
 
@@ -438,14 +473,14 @@ Detailed troubleshooting records:
 
 ---
 
-## 6. Quick Start
+## 7. Quick Start
 
 
 
 ---
 
 
-### 7. Future work:
+### 8. Future work:
 
 Automation and Cloud Deployment
 
@@ -454,109 +489,31 @@ Automation and Cloud Deployment
 ---
 
 
-## 8. References
+## 9. References
 
-- IT-Grundschutz Compendium of the 2022 edition: 
-https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/Grundschutz/Internationa__blob=publicationFile&v=2 
+[1] Centro Criptológico Nacional, “CCN-STIC-673: Guía de configuración segura en servidores web,” CCN-CERT. [Online]. Available: https://www.ccn-cert.cni.es/es/series-ccn-stic/guias-de-acceso-publico-ccn-stic/6861-ccn-stic-673-guia-de-configuracion-segura-en-servidores-web/file?format=html. [Accessed: Aug. 26, 2026].
 
-- Guía de Seguridad de las TIC CCN-STIC-673. GUÍA DE CONFIGURACIÓN SEGURA EN SERVIDORES WEB. 
-https://www.ccn-cert.cni.es/es/series-ccn-stic/guias-de-acceso-publico-ccn-stic/6861-ccn-stic-673-guia-de-configuracion-segura-en-servidores-web/file?format=html
+[2] K. Scarfone and P. Hoffman, “Guidelines on Firewalls and Firewall Policy,” National Institute of Standards and Technology, NIST Special Publication 800-41 Rev. 1, Sep. 2009. [Online]. Available: https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-41r1.pdf. [Accessed: Aug. 26, 2026].
 
-- Guía de Seguridad de las TIC CCN-STIC-812. GUÍA DE SEGURIDAD EN ENTORNOS Y APLICACIONES WEB:
-https://imaginecloud.es/media/attachments/2024/06/16/812-entornos_y_aplicaciones_web.pdf
+[3] Linux Professional Institute, “LPIC-1 Learning Materials — Exam 101-500, Version 5.0,” Linux Professional Institute, 2022. See Objectives 102.1, 102.4, 104.1, 104.3 and 104.5.
 
-- LPI-Learning-Material-101-500: 
+[4] Linux Professional Institute, “LPIC-1 Learning Materials — Exam 102-500, Version 5.0,” Linux Professional Institute, 2022. See Objectives 107.1, 108.1, 109.2–109.4 and 110.3.
 
-- LPI-Learning-Material-102-500:
+[5] libvirt Project, “Virtual Networking,” libvirt Wiki. [Online]. Available: https://wiki.libvirt.org/VirtualNetworking.html. [Accessed: Aug. 26, 2026].
 
-- https://wiki.libvirt.org/VirtualNetworking.html
+[6] Canonical Ltd., “UFW — Uncomplicated Firewall,” Ubuntu Community Help Wiki. [Online]. Available: https://help.ubuntu.com/community/UFW. [Accessed: Aug. 26, 2026].
 
-- https://wiki.libvirt.org/Networking.html
+[7] Sue B.V., *The LPIC2 Exam Prep*, 8th ed. β, version 4.5, Geldermalsen, The Netherlands, 2021. [Online]. Available: https://lpic2book.github.io/src/pdf/lpic2book.pdf. [Accessed: Aug. 26, 2026].
 
-- https://help.ubuntu.com/community/UFW
+[8] Sue B.V., *The LPIC2 Exam Prep*, 8th ed. β, version 4.5, sec. 54.3.7, “Connection tracking: Stateful Firewalling,” p. 382, Geldermalsen, The Netherlands, 2021. [Online]. Available: https://lpic2book.github.io/src/pdf/lpic2book.pdf. [Accessed: Aug. 26, 2026].
 
-- The LPIC2 Exam Prep. Implementing Nginx as a web server and a reverse proxy (208.4): 
-https://lpic2book.github.io/src/lpic2.208.4/
+[9] Canonical Ltd., “How to configure nginx,” Ubuntu Server Documentation. [Online]. Available: https://ubuntu.com/server/docs/how-to/web-services/configure-nginx/. [Accessed: Aug. 26, 2026].
 
-- Ubuntu Server documentation. How to install nginx: 
-https://ubuntu.com/server/docs/how-to/web-services/install-nginx/
+[10] NGINX, Inc., “Module ngx_http_ssl_module,” NGINX Documentation. [Online]. Available: https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_protocols. [Accessed: Aug. 26, 2026].
 
-- Ubuntu Server documentation. How to configure nginx: 
-https://ubuntu.com/server/docs/how-to/web-services/configure-nginx/
+[11] OWASP Foundation, “HTTP Security Response Headers Cheat Sheet,” OWASP Cheat Sheet Series. [Online]. Available: https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html. [Accessed: Aug. 26, 2026].
 
-- Medium. Enable SSL in Nginx Server to access the application on HTTPS (Port 443): 
-https://medium.com/@charanv369/enable-ssl-in-nginx-server-to-access-the-application-on-https-port-443-1bcd52667b08
-
-
-
-- NGINX. Module ngx_http_ssl_module: 
-https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate
-
-- NGINX. Module ngx_http_ssl_module: 
-https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_certificate_key
-
-- NGINX. Module ngx_http_ssl_module: 
-https://nginx.org/en/docs/http/ngx_http_ssl_module.html#ssl_protocols
-
-- OpenSSL Documentation. openssl-req: 
-https://docs.openssl.org/3.4/man1/openssl-req/
-
-- OWASP Cheat Sheet Series. HTTP Security Response Headers Cheat Sheet: 
-https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html
-
-- Cisco Secure Firewall ASA: 
-https://www.cisco.com/c/en_in/products/security/adaptive-security-appliance-asa-software/index.html
-
-- CLI Book 2: Cisco Secure Firewall ASA Firewall CLI Configuration Guide, 9.20: 
-https://www.cisco.com/c/en/us/td/docs/security/asa/asa920/configuration/firewall/asa-920-firewall-config/nat-basics.html
-
-- Alpine wiki. Using an answerfile with setup-alpine: 
-https://wiki.alpinelinux.org/wiki/Using_an_answerfile_with_setup-alpine
-
-- HashiCorp. Packer examples: 
-https://developer.hashicorp.com/packer/integrations/hashicorp/qemu/latest/components/builder/qemu
-
-
-- The Perfect Nginx Server - Ubuntu (24.04) Edition: 
-https://www.udemy.com/course/the-perfect-nginx-server-ubuntu-2404-edition/
-
-- Ubuntu installation documentation. Autoinstall quick start. Available in: https://canonical-subiquity.readthedocs-hosted.com/en/latest/howto/autoinstall-quickstart.html
-
-- Ubuntu installation documentation. Creating autoinstall configuration: 
-https://canonical-subiquity.readthedocs-hosted.com/en/latest/tutorial/creating-autoinstall-configuration.html
-
-[1] *The LPIC2 Exam Prep*, Topic 205, “Networking Configuration,” Objectives 205.1–205.3.
-
-[2] *The LPIC2 Exam Prep*, Topic 212, “System Security,” Objective 212.1, “Configuring a Router.”
-
-- Chapter: Introduction to the Secure Firewall ASA : 
-https://www.cisco.com/c/en/us/td/docs/security/asa/asa920/configuration/general/asa-920-general-config/intro-intro.html
-
-- Chapter: Access Rules: 
-https://www.cisco.com/c/en/us/td/docs/security/asa/asa920/configuration/firewall/asa-920-firewall-config/access-rules.html
-
-- Chapter: Network Address Translation (NAT): 
-https://www.cisco.com/c/en/us/td/docs/security/asa/asa920/configuration/firewall/asa-920-firewall-config/nat-basics.html
-
-- NIST SP 800-41 Rev.1. Guidelines on Firewalls and Firewall Policy. Chapter 4 - Firewall Policy: https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-41r1.pdf
-
-
-
-
-
-- CIS Ubuntu Linux Benchmark.
-
-- CIS NGINX Benchmark.
-
-- Linux Filesystem Hierarchy Standard:
-https://refspecs.linuxfoundation.org/FHS_3.0/fhs-3.0.pdf
-
-- https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-207.pdf
-
-
-
-
-
+[12] Cisco Systems, Inc., “Introduction to the Secure Firewall ASA,” CLI Book 1: Cisco Secure Firewall ASA General Operations CLI Configuration Guide, Release 9.20. [Online]. Available: https://www.cisco.com/c/en/us/td/docs/security/asa/asa920/configuration/general/asa-920-general-config/intro-intro.html. [Accessed: Aug. 26, 2026].
 
 
 
