@@ -148,6 +148,8 @@ virsh net-dumpxml internal-net
 This is useful because it shows the configuration that libvirt is really using.
 
 
+
+
 ## Resouces
 
 - LPIC-1 Learning Materials — Topic 109: Networking Fundamentals, IPv4 addressing, subnet masks and routing.

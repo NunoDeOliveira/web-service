@@ -543,6 +543,10 @@ This evidence confirms **Layer 3 connectivity between both firewall routers over
 These tests do not prove firewall filtering or NAT. Those controls are validated separately after the nftables configuration.
 
 
+#### 4. Configuration de firewalls
+
+Cisco defines the ASA as a stateful firewall that can operate in Layer 3 routed mode. In this mode, the firewall acts as a router, in exactly the same way as the FW1 and FW2 firewalls. Cisco explains that the ASA can operate according to the Outside – DMZ – Inside model, whereby public services can be placed in a DMZ to allow limited access from outside without directly exposing internal networks.
+
 
 
 
@@ -664,13 +668,20 @@ https://www.udemy.com/course/the-perfect-nginx-server-ubuntu-2404-edition/
 - Ubuntu installation documentation. Creating autoinstall configuration: 
 https://canonical-subiquity.readthedocs-hosted.com/en/latest/tutorial/creating-autoinstall-configuration.html
 
-[1] *The LPIC2 Exam Prep*, Topic 205, “Networking Configuration,”
-Objectives 205.1–205.3.
+[1] *The LPIC2 Exam Prep*, Topic 205, “Networking Configuration,” Objectives 205.1–205.3.
 
-[2] *The LPIC2 Exam Prep*, Topic 212, “System Security,”
-Objective 212.1, “Configuring a Router.”
+[2] *The LPIC2 Exam Prep*, Topic 212, “System Security,” Objective 212.1, “Configuring a Router.”
 
+- Chapter: Introduction to the Secure Firewall ASA : 
+https://www.cisco.com/c/en/us/td/docs/security/asa/asa920/configuration/general/asa-920-general-config/intro-intro.html
 
+- Chapter: Access Rules: 
+https://www.cisco.com/c/en/us/td/docs/security/asa/asa920/configuration/firewall/asa-920-firewall-config/access-rules.html
+
+- Chapter: Network Address Translation (NAT): 
+https://www.cisco.com/c/en/us/td/docs/security/asa/asa920/configuration/firewall/asa-920-firewall-config/nat-basics.html
+
+- NIST SP 800-41 Rev.1. Guidelines on Firewalls and Firewall Policy. Chapter 4 - Firewall Policy: https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-41r1.pdf
 
 
 

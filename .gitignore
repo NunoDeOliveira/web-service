@@ -4,5 +4,6 @@
 
 Papers/
 screenshots/
+screenshots
 packer/secret.auto.pkrvars.hcl
 packer/output/
