@@ -45,13 +45,6 @@ The objective is to provide the development team with a secure deployment target
 ---
 
 
-## 1. Requirements of Web Server
-
-As a result of the research described in the previous section, a set of system and network requirements was extracted from the selected security references. The complete requirement selected, including and their are available here:
-
-- [System Requirements](docs/sys-requirements.md)
-- [Network Requirements](docs/net-requirements.md)
-
 ## 1. Project Approach and Requirements
 
 The project uses security and operational requirements from recognised security guides and official product documentation. These requirements cover Linux system security, network segmentation, web and TLS security, monitoring, backups and recovery.
@@ -98,7 +91,7 @@ The Internal network is protected behind FW2. It is prepared for future backend 
 ---
 
 
-## 4. Implementation Phases
+## 4. Implementation Phases of Web Server
 
 ### 4.1 Install operating system for Web Server
 
@@ -122,7 +115,7 @@ The remaining disk space was assigned to an LVM physical volume. LVM was used to
 
 ![lsblk main comand.png](screenshots/lsblk-main-comand.png) 
 
-For more details:
+>For more details:
 ![Installing & particions](docs/partitions-configuration.md)
 
 
@@ -231,7 +224,7 @@ This reduces the exposed network surface and applies a whitelist model: traffic 
 
 ![UFW firewall rules](screenshots/ufw-rules.png)
 
-For more details:
+>For more details:
 ![configure-network.md](docs/configure-network-web-server.md)
 
 
@@ -252,7 +245,7 @@ In the capture is checked the permissions of configuration directories to confir
 
 ---
 
-It was created a NGINX server block for **NorthTech Operations** instead of using the default Ubuntu website. The site configuration is stored in `/etc/nginx/sites-available/northtech` and enabled through `/etc/nginx/sites-enabled/`.
+It was created a NGINX server block for *NorthTech Operations* instead of using the default Ubuntu website. The site configuration is stored in `/etc/nginx/sites-available/northtech` and enabled through `/etc/nginx/sites-enabled/`.
 
 The configuration separates the global NGINX settings from the application-specific settings and maps the website to `/var/www/northtech`. This makes the service easier to maintain, audit and later extend with HTTPS and reverse-proxy functions.
 
@@ -291,7 +284,7 @@ Detailed implementation:
 
 
 
-### 4.5 Installing and configure the firewalls of DMZ
+## 5 Implementation Phase of DMZ
 
 The DMZ firewall design is inspired by the **Cisco ASA model**, a traditional stateful firewall used to combine routing, NAT and traffic filtering between different security zones.
 
@@ -389,7 +382,7 @@ Cisco defines the ASA as a stateful firewall that can operate in Layer 3 routed 
 
 
 
-### 4.6 Remote Administration and Server Hardening
+### 6. Remote Administration and Server Hardening
 
 Remote administration of the Web Server is provided through OpenSSH. SSH was selected because it provides encrypted and authenticated remote access to the Linux system.
 
