@@ -79,7 +79,7 @@ I used VLSM to give each network enough addresses for its expected number of hos
 | DMZ | `10.0.0.32/28` | 8 | 14 | Internet-facing services |
 | Management | `10.0.0.48/29` | 4 | 6 | Infrastructure administration |
 
-This plan creates three separate security zones. The DMZ contains public services, the Internal network is reserved for backend systems, and the Management network is used only for administration.
+This plan creates three separate security zones. The DMZ contains public services, the Internal network is reserved for backend systems, and the Management network is used only for administration [2].
 
 ### 2.2 Topology
 
@@ -89,13 +89,13 @@ The VLSM plan was then applied to a segmented topology with two firewalls and se
 
 > **Note:** Faded devices represent external or planned components that are not implemented in the current version of the project.
 
-The External network connects the environment to the libvirt NAT gateway at `192.168.122.1`. FW1 separates this External network from the DMZ.
+The External network connects the environment to the libvirt NAT gateway at `192.168.122.1`. FW1 separates this External network from the DMZ [5].
 
-The Web Server is placed in the DMZ because it provides the public HTTPS service. FW2 separates the DMZ from the Internal and Management networks.
+The Web Server is placed in the DMZ because it provides the public HTTPS service. FW2 separates the DMZ from the Internal and Management networks [2].
 
-The Management network is isolated from the DMZ and External network. Administrative access to FW1, FW2 and other systems must come from the Admin station.
+The Management network is isolated from the DMZ and External network. Administrative access to FW1, FW2 and other systems must come from the Admin station [2].
 
-The Internal network is protected behind FW2. It is prepared for future backend services such as an application server and database server. These systems will not need direct access from the External network.
+The Internal network is protected behind FW2. It is prepared for future backend services such as an application server and database server. These systems will not need direct access from the External network [2].
 
 ---
 
@@ -120,7 +120,7 @@ The static hostname provides a persistent identity for the server across reboots
 
 During installation, the 25 GiB virtual disk `/dev/vda` was manually partitioned using GPT. A 1 MiB BIOS boot partition was created for GRUB, followed by a separate 1 GiB ext4 partition mounted at `/boot`.
 
-The remaining disk space was assigned to an LVM physical volume. LVM was used to create logical volumes for `/`, `/var` and swap. Separating `/var` reduces the risk that uncontrolled growth of logs and other variable data could fill the root filesystem. Approximately 4 GiB were left free in the volume group for future expansion.
+The remaining disk space was assigned to an LVM physical volume. LVM was used to create logical volumes for `/`, `/var` and swap. Separating `/var` reduces the risk that uncontrolled growth of logs and other variable data could fill the root filesystem. Approximately 4 GiB were left free in the volume group for future expansion [3].
 
 ![lsblk main comand.png](screenshots/lsblk-main-comand.png) 
 
@@ -135,7 +135,7 @@ Before installing network and web services, I prepared the base Linux system. Th
 These tasks provide a controlled operating system before installing hte services and other configuration.
 
 **1. Package maintenance**
-APT uses the package information from the configured repositories to install and update software. Updating this information before installing the services helps to avoid versioning issues during the installation of the services. The utility used is:
+APT uses the package information from the configured repositories to install and update software. Updating this information before installing the services helps to avoid versioning issues during the installation of the services [3]. The utility used is:
 
 ```bash
 sudo apt-get update && sudo apt-get upgrade
@@ -144,7 +144,7 @@ sudo apt-get update && sudo apt-get upgrade
 
 **2. System identity, timezone and locale configuration**
 
-The server hostname, timezone and locale were configured before deploying services. Is important that time is set correctly, to ensure the consistency of logs, SSH sessions and security events that rely of timestamps.
+The server hostname, timezone and locale were configured before deploying services. Is important that time is set correctly, to ensure the consistency of logs, SSH sessions and security events that rely of timestamps [4].
 
 The final configuration was validated with timedatectl and locale information.
 
@@ -163,7 +163,7 @@ The server use separate users and groups were created for different responsibili
 
 This design separates responsibilities instead of giving the same permissions to every account.
 
-Linux stores user and group information in /etc/passwd, /etc/shadow and /etc/group. LPIC-1 Objective 107.1 covers the creation, modification and administration of these accounts.
+Linux stores user and group information in /etc/passwd, /etc/shadow and /etc/group. LPIC-1 Objective 107.1 covers the creation, modification and administration of these accounts [4].
 
 The final account configuration was validated with:
 
@@ -181,7 +181,7 @@ Password ageing and account status were also checked:
 
 After preparing the base Linux system, the next phase was to configure and validate the network connectivity required by the design defined in Section 2.
 
-This phase focused on interface configuration, static addressing, routing, DNS resolution and connectivity tests. The objective was to ensure that each system could communicate only through the correct network path before applying firewall security policies.
+This phase focused on interface configuration, static addressing, routing, DNS resolution and connectivity tests [4]. The objective was to ensure that each system could communicate only through the correct network path before applying firewall security policies.
 
 
 
@@ -195,7 +195,7 @@ Three separate virtual networks were defined:
 - `management-net` for administration.
 - `internal-net` for internal systems.
 
-The networks were configured as persistent and enabled at system startup. This provides the virtual network structure required to separate systems with different security needs.
+The networks were configured as persistent and enabled at system startup. This provides the virtual network structure required to separate systems with different security needs [5].
 
 The configuration was verified with:
 
@@ -204,11 +204,11 @@ The configuration was verified with:
 
 **2. Persistent network configuration with Netplan**
 
-The Web Server uses Netplan to keep its network configuration persistent after a reboot. A static IP address was assigned to the DMZ interface because a server must have a predictable address for firewall rules, SSH administration and web services.
+The Web Server uses Netplan to keep its network configuration persistent after a reboot. A static IP address was assigned to the DMZ interface because a server must have a predictable address for firewall rules, SSH administration and web services [4].
 
 The Web Server was assigned the address `10.0.0.34/28` in the DMZ network `10.0.0.32/28`.
 
-The Web Server uses only its DMZ interface. Its default route points to FW1 at 10.0.0.33, while routes to the Internal and Management networks use FW2 at 10.0.0.46
+The Web Server uses only its DMZ interface. Its default route points to FW1 at 10.0.0.33, while routes to the Internal and Management networks use FW2 at 10.0.0.46 [4].
 
 The final configuration was checked to confirm the assigned interfaces, addresses and routes.
 
@@ -216,7 +216,7 @@ The final configuration was checked to confirm the assigned interfaces, addresse
 
 **3. Web Server local firewall**
 
-UFW was configured as the local firewall of the Web Server. The objective is to expose only the services required by the server and block all other incoming traffic.
+UFW was configured as the local firewall of the Web Server. The objective is to expose only the services required by the server and block all other incoming traffic [6].
 
 The firewall uses a default-deny policy for incoming connections and allows only:
 
@@ -225,7 +225,7 @@ The firewall uses a default-deny policy for incoming connections and allows only
 - `22/tcp` from the Management Network (`10.0.0.48/29`) for administration.
 - `22/tcp` from the authorised developer host (`10.0.0.2`) for application deployment (without implementing).
 
-This reduces the exposed network surface and applies a whitelist model: traffic is blocked unless it is explicitly required.
+This reduces the exposed network surface and applies a whitelist model: traffic is blocked unless it is explicitly required [2].
 
 ![UFW firewall rules](screenshots/ufw-rules.png)
 
@@ -237,11 +237,10 @@ This reduces the exposed network surface and applies a whitelist model: traffic 
 
 ### 3.4 Web Services - NGINX
 
-After completing the network configuration, I deployed NGINX as the public web service in the DMZ. The installation and basic server configuration follow *LPIC-2 Objective 208.4: Implementing NGINX as a web server and a reverse proxy*, which covers NGINX configuration, server blocks, document roots and configuration validation.
+After completing the network configuration, I deployed NGINX as the public web service in the DMZ. The installation and basic server configuration follow *LPIC-2 Objective 208.4: Implementing NGINX as a web server and a reverse proxy*, which covers NGINX configuration, server blocks, document roots and configuration validation [7].
 
 The objective of this phase was to provide a controlled HTTP/HTTPS service, prepare the content permissions and validate the configuration before applying changes.
 
----
 
 **1. Configure NGINX service**
 
@@ -252,11 +251,11 @@ Before install Nginx, the next step will be to set the directory permissions of 
 In the capture is checked the permissions of configuration directories to confirm that they remain under `root` control. Then, `/var/www/northtech-ops` was assigned to the `developers` group, group access was enabled, and then SGID was applied so new files and directories inherit the `developers` group. The final check confirms the `root:developers` ownership and the SGID permission.
 
 
-It was created a NGINX server block for *NorthTech Operations* instead of using the default Ubuntu website. The site configuration is stored in `/etc/nginx/sites-available/northtech` and enabled through `/etc/nginx/sites-enabled/`.
+It was created a NGINX server block for *NorthTech Operations* instead of using the default Ubuntu website. The site configuration is stored in `/etc/nginx/sites-available/northtech` and enabled through `/etc/nginx/sites-enabled/` [7], [9].
 
-The configuration separates the global NGINX settings from the application-specific settings and maps the website to `/var/www/northtech-ops`. This makes the service easier to maintain, audit and later extend with HTTPS and reverse-proxy functions.
+The configuration separates the global NGINX settings from the application-specific settings and maps the website to `/var/www/northtech-ops`. This makes the service easier to maintain, audit and later extend with HTTPS and reverse-proxy functions [7], [9].
 
-Before applying any configuration change, `nginx -t` is used to validate the configuration. The service is reloaded only after a successful test, reducing the risk of an outage caused by a configuration error.
+Before applying any configuration change, `nginx -t` is used to validate the configuration. The service is reloaded only after a successful test, reducing the risk of an outage caused by a configuration error [7], [9].
 
 ![NorthTech NGINX validation](screenshots/final-nginx-content.png)
 
@@ -272,7 +271,7 @@ HTTP traffic on port `80` is redirected to HTTPS. This ensures that the website 
 
 A self-signed X.509 certificate was created with OpenSSL for the local laboratory environment. The certificate uses `northtech.test` as the server name and is valid for one year.
 
-NGINX was configured to use TLS 1.2 and TLS 1.3. The private key is protected with restricted file permissions.
+NGINX was configured to use TLS 1.2 and TLS 1.3. The private key is protected with restricted file permissions [10].
 
 The implementation was validated with `curl` and OpenSSL. The tests confirm:
 
@@ -294,9 +293,9 @@ The implementation was validated with `curl` and OpenSSL. The tests confirm:
 
 After implementing the network segments, I deployed two routed firewalls to control communication between the External, DMZ, Internal and Management networks.
 
-The DMZ firewall design is inspired by the **Cisco ASA model**. Cisco ASA can operate as a stateful firewall in Layer 3 routed mode, where it connects different networks and applies security policies between them. This model also supports an Outside–DMZ–Inside architecture, where public services can be placed in a DMZ without directly exposing internal systems.
+The DMZ firewall design is inspired by the **Cisco ASA model**. Cisco ASA can operate as a stateful firewall in Layer 3 routed mode, where it connects different networks and applies security policies between them. This model also supports an Outside–DMZ–Inside architecture, where public services can be placed in a DMZ without directly exposing internal systems [12].
 
-For this project, I selected Alpine Linux and nftables to apply the same main concepts with a lightweight and auditable Linux solution. FW1 provides perimeter filtering and NAT between the External network and the DMZ, while FW2 protects the Internal and Management networks from the DMZ.
+For this project, I selected Alpine Linux and nftables to apply the same main concepts with a lightweight and auditable Linux solution. FW1 provides perimeter filtering and NAT between the External network and the DMZ, while FW2 protects the Internal and Management networks from the DMZ [2], [7].
 
 ---
 
@@ -309,9 +308,9 @@ Its two interfaces are:
 - `eth0` - external: `192.168.122.2/24`
 - `eth1` - DMZ: `10.0.0.33/28`
 
-The default route uses the libvirt gateway `192.168.122.1`. FW1 also has static routes to the Internal (`10.0.0.0/27`) and Management (`10.0.0.48/29`) networks through FW2 at `10.0.0.46`.
+The default route uses the libvirt gateway `192.168.122.1`. FW1 also has static routes to the Internal (`10.0.0.0/27`) and Management (`10.0.0.48/29`) networks through FW2 at `10.0.0.46` [7].
 
-These routes are required because FW2 is the router connected to both networks. IPv4 forwarding is enabled with `net.ipv4.ip_forward = 1`, allowing FW1 to route packets between its interfaces [1], [2].
+These routes are required because FW2 is the router connected to both networks. IPv4 forwarding is enabled with `net.ipv4.ip_forward = 1`, allowing FW1 to route packets between its interfaces [7].
 
 ![Firewall FW1 network configuration](screenshots/firewalls/net-conf-fw1.png)
 
@@ -331,7 +330,7 @@ Its three interfaces are:
 
 Because FW2 is directly connected to these three networks, Linux creates a route for each network automatically. Its default route points to FW1 at `10.0.0.33`, which is used to reach networks outside these local segments.
 
-IPv4 forwarding is also enabled on FW2 so that it can work as a multi-homed Linux router between the DMZ, Internal and Management networks [1], [2].
+IPv4 forwarding is also enabled on FW2 so that it can work as a router between the DMZ, Internal and Management networks.
 
 ![Firewall FW2 network configuration](screenshots/firewalls/net-conf-fw2.png)
 
@@ -366,17 +365,17 @@ After validating the routing configuration, I applied nftables rules on FW1 and 
 
 A stateful firewall tracks active connections and keeps information such as source address, destination address, protocol and port numbers. This allows the firewall to decide whether a packet belongs to an authorised connection or whether it is trying to start a new one [8].
 
-To implement this behaviour, nftables uses the Linux kernel Connection Tracking system. The operating system keeps a dynamic table in memory with the state of active connections.
+To implement this behaviour, nftables uses the Linux kernel Connection Tracking system. The operating system keeps a dynamic table in memory with the state of active connections [8].
 
-*Case 1 — The connection is already known*
+*Case 1 - The connection is already known*
 
 1. The firewall checks the connection tracking table.
 2. If the packet belongs to an authorised existing connection, it is classified as `Established`.
 3. The packet is allowed to continue without creating another specific rule for the return direction.
 
-This is the main idea of a stateful firewall: it remembers authorised connections and recognises their valid return traffic.
+This is the main idea of a stateful firewall: it remembers authorised connections and recognises their valid return traffic [8].
 
-*Case 2 — The connection is new*
+*Case 2 - The connection is new*
 
 1. If the packet does not belong to an existing connection, it is classified as `New`.
 2. The firewall checks the security policy for its source, destination and service.
@@ -384,17 +383,17 @@ This is the main idea of a stateful firewall: it remembers authorised connection
 4. From that moment, return packets belonging to the same communication can be recognised as `Established`.
 5. If the new connection is not explicitly allowed, it is blocked by the default `DROP` policy.
 
-*Case 3 — The traffic is related to an existing connection*
+*Case 3 - The traffic is related to an existing connection*
 
 Some traffic is not part of the original connection but is created because of an authorised connection.
 
-The firewall can classify this traffic as `Related` and allow it because it is linked to an existing valid communication.
+The firewall can classify this traffic as `Related` and allow it because it is linked to an existing valid communication [8].
 
-*Case 4 — The connection state is invalid*
+*Case 4 - The connection state is invalid*
 
 If the firewall cannot associate the packet with a valid connection, it can classify it as `Invalid`.
 
-This traffic is dropped because it does not belong to an authorised or recognised communication.
+This traffic is dropped because it does not belong to an authorised or recognised communication [8].
 
 
 **NAT on FW1**
@@ -430,9 +429,9 @@ Detailed firewall rules, deployment steps and ALLOW/DROP tests are documented in
 
 ### 5. Remote Administration and Server Hardening
 
-Remote administration of the Web Server is provided through OpenSSH. SSH was selected because it provides encrypted and authenticated remote access to the Linux system.
+Remote administration of the Web Server is provided through OpenSSH. SSH was selected because it provides encrypted and authenticated remote access to the Linux system [4].
 
-The administration account `nuno` uses public-key authentication. The private key remains on the administrator machine, while only the public key is stored on the Web Server in `~/.ssh/authorized_keys`. LPIC-1 describes public-key authentication as the preferred method for remote SSH access and explains the use of `ssh-keygen`, `ssh-copy-id` for  to generate and copy the public key and `authorized_keys` as the file in which to store it.
+The administration account `nuno` uses public-key authentication. The private key remains on the administrator machine, while only the public key is stored on the Web Server in `~/.ssh/authorized_keys`. LPIC-1 describes public-key authentication as the preferred method for remote SSH access and explains the use of `ssh-keygen`, `ssh-copy-id` for  to generate and copy the public key and `authorized_keys` as the file in which to store it [4].
 
 SSH access has been secured using a specific configuration file:
 
@@ -451,7 +450,7 @@ The final network design allows the administrator to access SSH only from the Ma
 
 ![evidence-ssh-working.png](screenshots/evidence-ssh-working.png)
 
-For more details:
+>For more details:
 [SSH Configuration](docs/configure-ssh.md)
 
 
@@ -467,11 +466,12 @@ This section contains only incidents that actually occurred during the implement
 | ---------------- | -------- | --------- | ---------- | ---------- | -------- |
 |  |          |           |            |            |          |
 
-Detailed troubleshooting records:
 
-![troubleshooting.md](docs/troubleshooting.md)
+>Detailed troubleshooting records:
+[troubleshooting.md](docs/troubleshooting.md)
 
 ---
+
 
 ## 7. Quick Start
 
@@ -481,8 +481,6 @@ Detailed troubleshooting records:
 
 
 ### 8. Future work:
-
-Automation and Cloud Deployment
 
 
 
