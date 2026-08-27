@@ -347,7 +347,7 @@ After configuring both routers, bidirectional ICMP tests were performed across t
 - FW2 (`10.0.0.46`) successfully reached FW1 (`10.0.0.33`).
 - Both tests completed with `0% packet loss`.
 
-![Connectivity Between Firewalls](screenshots/firewalls/conectivity-between-fw1-fw2.png)
+![Connectivity Between Firewalls](screenshots/firewalls/connectivity-between-fw1-fw2.png)
 
 This evidence confirms Layer 3 connectivity between both firewall routers over the DMZ. It validates the addressing and basic routing configuration before packet filtering rules are introduced.
 
