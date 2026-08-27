@@ -11,18 +11,19 @@
 
 This project involves the design, implementation and administration of a Linux Web Server operating and its network infrastructure. The web server runs on a DMZ architecture bounded by two firewalls, both of which also run on the Alpine Linux operating system and use nftables as their service.
 
-For this project, I assumed the role of Systems and Network Administrator. I am
-responsible for designing, provisioning, securing and validating the systems and network infrastructure used by the web service.
+For this project, I assumed the role of Systems and Network Administrator. I am responsible for designing, provisioning, securing and validating the systems and network infrastructure used by the web service.
 
 The objective is to provide the development team with a secure deployment target while retaining administrative control and isolating the public-facing service from protected networks.
 
+- **Linux system provisioning:** Ubuntu Server 24.04 on KVM/libvirt, with GPT/LVM storage, package maintenance, system identity and time configuration.
 
-1. Linux system provisioning: preparing of Ubuntu Server 24.04 on KVM/libvirt, including GPT/LVM storage, package management, system identity and time synchronisation..
-2. System administration: management of users, groups, sudo privileges, filesystem ownership and permissions, SSH public-key authentication, system services and host firewall rules.
-3. Network segmentation and firewalling: define a router-gateway, DMZ, Internal and Management zones, together with static addressing, routing, IPv4 forwarding and two Alpine Linux firewalls using nftables for stateful packet filtering, default-deny policies, DNAT and SNAT. 
-4. Services and Security: configuration of NGINX, controlled permissions for web content deployment, HTTP-to-HTTPS redirection, TLS 1.2 and TLS 1.3, and HTTP security headers.
-5. Validation, operations and reproducibility — Verification of service availability, permitted and denied network flows, TLS configuration, firewall isolation, logging, monitoring and recovery procedures. This phase also includes the development of Packer templates and shell scripts for the automated Quick Start deployment.
+- **System administration:** users, groups, sudo privileges, filesystem permissions, SSH public-key authentication, system services and host firewall rules.
 
+- **Network segmentation and firewalling:** External, DMZ, Internal and Management networks, static routing, IPv4 forwarding, and two Alpine Linux firewalls with nftables, stateful filtering, default-deny policies, DNAT and SNAT.
+
+- **Web services and security:** NGINX deployment, controlled web-content permissions and HTTPS configuration.
+
+- **Validation, operations and reproducibility:** service and network-flow validation, TLS and firewall tests, logging, monitoring, recovery procedures, and Packer/shell automation for the Quick Start deployment.
 
 > **Note:** The core Linux, networking, firewall and HTTPS components have been implemented. Security validation, operational testing, monitoring and the automated Quick Start deployment are currently in progress.
 
@@ -60,7 +61,7 @@ The project uses security and operational requirements from recognised security 
 
 Each requirement is linked to a design decision, an implemented control and a validation test. Completed test results are stored as project evidence.
 
-The complete requirements and their links to the implemented controls and tests are available in the [Web Server Requirements](docs/web-server-requirements.md).
+>The complete requirements and their links to the implemented controls and tests are available in the [Web Server Requirements](docs/web-server-requirements.md).
 
 ---
 
@@ -85,7 +86,7 @@ This plan creates three separate security zones. The DMZ contains public service
 
 The VLSM plan was then applied to a segmented topology with two firewalls and separate security zones.
 
-![Web Server Topology](docs/web-server-topology.png)
+![Web Server Topology](screenshots/web-server-topology.png)
 
 > **Note:** Faded devices represent external or planned components that are not implemented in the current version of the project.
 
