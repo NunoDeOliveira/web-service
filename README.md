@@ -11,7 +11,7 @@
 
 This project involves the design, implementation and administration of a Linux Web Server operating and its network infrastructure. The web server runs on a DMZ architecture bounded by two firewalls, both of which also run on the Alpine Linux operating system and use nftables as their service.
 
-For this project, I assumed the role of Systems and Network Administrator. I am responsible for designing, provisioning, securing and validating the systems and network infrastructure used by the web service.
+For this project, I assumed the role of Systems and Network Administrator. 
 
 The objective is to provide the development team with a secure deployment target while retaining administrative control and isolating the public-facing service from protected networks.
 
@@ -260,6 +260,8 @@ Before applying any configuration change, `nginx -t` is used to validate the con
 
 ![NorthTech NGINX validation](screenshots/final-nginx-content.png)
 
+and now displaying the home page:
+
 ![Final Web Site](screenshots/final-web-site.png)
 
 ---
@@ -476,7 +478,33 @@ This section contains only incidents that actually occurred during the implement
 
 ## 7. Quick Start
 
+For connecting to admin station:
 
+```bash
+chmod +x components/admin-station/network/configure-admin-station.sh
+```
+
+```bash
+./projects/web-server-infra/components/management/admin-station.sh
+```
+
+From fw2 terminal, to manager firewall FW1:
+
+```bash
+ssh root@10.0.0.33
+```
+
+From fw2 terminal, to manager Web Server:
+
+```bash
+ssh nuno@10.0.0.34
+```
+
+From fw2 terminal, to manager FW2:
+
+```bash
+ssh root@10.0.0.49
+```
 
 ---
 
@@ -513,6 +541,10 @@ This section contains only incidents that actually occurred during the implement
 [11] OWASP Foundation, “HTTP Security Response Headers Cheat Sheet,” OWASP Cheat Sheet Series. [Online]. Available: https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html. [Accessed: Aug. 26, 2026].
 
 [12] Cisco Systems, Inc., “Introduction to the Secure Firewall ASA,” CLI Book 1: Cisco Secure Firewall ASA General Operations CLI Configuration Guide, Release 9.20. [Online]. Available: https://www.cisco.com/c/en/us/td/docs/security/asa/asa920/configuration/general/asa-920-general-config/intro-intro.html. [Accessed: Aug. 26, 2026].
+
+[13] 205.3 - Troubleshooting Network Issues
+
+[14] 212.1 - Configuring a router / firewall.
 
 
 
