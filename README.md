@@ -290,6 +290,7 @@ The implementation was validated with `curl` and OpenSSL. The tests confirm:
 >Detailed implementation: 
 [NGINX Service Setup](docs/nginx-service-setup.md)
 
+---
 
 
 ## 4. DMZ Firewall Infrastructure
@@ -427,7 +428,7 @@ Detailed firewall rules, deployment steps and ALLOW/DROP tests are documented in
 >More details in:
 [Firewall Security Configuration](docs/configure-firewalls.md)
 
-
+---
 
 
 ### 5. Remote Administration and Server Hardening
@@ -451,17 +452,308 @@ These controls reduce the use of passwords, prevent direct remote access with th
 
 The final network design allows the administrator to access SSH only from the Management Network. The developer account will use the their public-key authentication to deploy the web server code.
 
-![evidence-ssh-working.png](screenshots/evidence-ssh-working.png)
+![SSH Working](screenshots/evidence-ssh-working.png)
 
 >For more details:
 [SSH Configuration](docs/configure-ssh.md)
 
-
-
 ---
 
 
+
 ## 6. Operation, Monitoring, Troubleshooting & Controlled Failure Scenarios
+
+### 6.1 Connectivity validation by layer TCP/IP 
+
+**01. Interfaces e IP**
+
+![Show interfaces](screenshots/01-ip-addr.png)
+
+The screenshot shows that the network interfaces for external-client, FW1, web-server and FW2 are active and have the expected IP addresses in line with the architecture. This confirms that the basic addressing of the infrastructure is correct before validating routing, firewalls and services.
+
+
+**02. IP routing and getting IP**
+
+![Show ip route](screenshots/02a-ip-route.png)
+
+*External client*
+
+- `default via 192.168.122.1` → All traffic destined for addresses outside the local network is sent to the libvirt gateway `192.168.122.1`.
+- `192.168.122.0/24 ... src 192.168.122.10` → The `192.168.122.0/24` network is directly connected and the client uses `192.168.122.10`.
+
+*FW1*
+
+- `default via 192.168.122.1` → All destinations without a specific route are routed out via the libvirt gateway over `eth0`.
+- `10.0.0.0/27 via 10.0.0.46` → To reach the Internal network, FW1 forwards traffic to FW2.
+- `10.0.0.32/28 ... src 10.0.0.33` → The DMZ is connected directly to FW1 via `eth1`, using `10.0.0.33`.
+- `10.0.0.48/29 via 10.0.0.46` → To reach the Management network, FW1 forwards the traffic to FW2.
+- `192.168.122.0/24 ... src 192.168.122.2` → The External network is connected directly to FW1 via `eth0`, using `192.168.122.2`.
+
+*Web Server*
+
+- `default via 10.0.0.33` → All destinations without a specific route are sent to FW1.
+- `10.0.0.0/27 via 10.0.0.46` → To reach the Internal network, the Web Server uses FW2 as the next hop.
+- `10.0.0.32/28 ... src 10.0.0.34` → The DMZ is connected directly to the Web Server, whose IP is `10.0.0.34`.
+- `10.0.0.48/29 via 10.0.0.46` → To reach Management, the Web Server uses FW2.
+
+*FW2*
+
+- `default via 10.0.0.33` → All unknown destinations are forwarded to FW1.
+- `10.0.0.0/27 ... src 10.0.0.1` → The internal network is connected directly to FW2 via `eth1`.
+- `10.0.0.32/28 ... src 10.0.0.46` → The DMZ is connected directly to FW2 via `eth0`.
+- `10.0.0.48/29 ... src 10.0.0.49` → Management is connected directly to FW2 via `eth2`.
+
+**03. Routing Validation - Admin Station to Web Server**
+
+![Get route from admin](screenshots/02b-ip-route-get-from-admin.png)
+
+>The screenshot shows how the traffic from the Admin Station (10.0.0.50) reaches the Web Server (10.0.0.34) through FW2 (10.0.0.49) using virbr50, exactly as defined by the architecture.
+
+
+**04. Routing Validation - Client Station to Web Server**
+
+![Get route from client](screenshots/02c-ip-route-get-from-client.png)
+
+>The external client (src) does not have a specific route to the DMZ, so traffic sent to 10.0.0.34 goes via its default gateway, 192.168.122.1.
+
+
+**05. Connectivity to the service**
+
+
+### 6.2 Linux Web Server - systems and services
+
+**Check health of system**
+
+In this test CPU, RAM, disk and load will be checked. Teh utilities used are:
+
+```bash
+uptime
+free h
+df
+vmstat
+top
+```
+
+**Check NGINX as service**
+
+Demostrar la cadena:
+
+configuration
+     ↓
+process
+     ↓
+listening socket
+     ↓
+HTTP response
+     ↓
+logs
+
+Herramientas:
+
+nginx -t, systemctl, ss, curl, journalctl
+
+**Persistence**
+
+Reiniciar el Web Server y comprobar que:
+
+red vuelve;
+SSH vuelve;
+NGINX vuelve;
+firewall local vuelve;
+web vuelve a responder.
+
+Esto tiene bastante valor de sysadmin.
+
+LPIC-2 200.1 cubre monitorización de recursos y LPIC-2 208.4 NGINX
+
+
+
+### 6.3 Network Security
+
+Aquí se valida la política, no el sistema operativo.
+
+Yo haría solo 3 pruebas fuertes.
+
+SEC-01 — External attack surface
+
+External Client:
+
+nmap
+
+Demostrar que desde Internet:
+
+HTTPS está disponible;
+SSH no;
+no aparece acceso administrativo innecesario.
+
+SEC-02 — Network segmentation
+
+Ejemplo:
+
+DMZ → Management = DROP
+
+Intento desde Web + counter de FW2.
+
+Esto demuestra que la segmentación existe de verdad.
+
+SEC-03 — Stateful policy
+
+Puede reutilizar FW-02. No hace falta duplicarla.
+
+Es decir, stateful pertenece técnicamente al firewall y también es evidencia de Network Security.
+
+
+### 6.4 FW1 / FW2 - routing, NAT y stateful
+
+FW-01 — DNAT/SNAT
+
+Demostrar realmente:
+
+External
+192.168.122.2:443
+       ↓
+      FW1
+       ↓ DNAT
+10.0.0.34:443
+
+y:
+
+Web private IP
+      ↓
+     FW1
+      ↓ SNAT
+192.168.122.2
+
+Herramientas:
+
+tcpdump + nft counters
+
+FW-02 — Stateful filtering
+
+Demostrar:
+
+NEW
+ ↓
+policy permits connection
+ ↓
+ESTABLISHED
+ ↓
+return traffic accepted
+
+y compararlo con una conexión nueva no autorizada.
+
+Esto conecta directamente con tu explicación de los Cisco ASA como firewalls stateful.
+
+LPIC-2 212.1 cubre routing, NAT y stateful firewalling
+
+
+### 6.5 Monitoring and Observability
+
+Después de demostrar que todo funciona debemos establecer un baseline operativo:
+
+CPU;
+RAM;
+disco;
+load;
+conexiones;
+NGINX;
+logs.
+
+Ejemplo conceptual:
+
+System resources
+      +
+Network connections
+      +
+Service state
+      +
+Application logs
+      =
+Known-good operational baseline
+
+Herramientas:
+
+uptime, free, df, vmstat/sar, ss, journalctl, NGINX logs.
+
+LPIC-2 200.1 está precisamente orientado a medir recursos y correlacionar síntomas con problemas
+
+
+### 6.6 Troubleshooting
+
+Debe reutilizar la misma metodología del punto 1:
+
+Symptom
+   ↓
+Scope
+   ↓
+Interface/IP
+   ↓
+Routing
+   ↓
+Firewall
+   ↓
+TCP socket
+   ↓
+Service
+   ↓
+Logs
+   ↓
+Root cause
+   ↓
+Correction
+   ↓
+Validation
+
+Haría después solo 2–3 incidentes muy buenos:
+
+problema de routing;
+firewall bloqueando un flujo;
+NGINX/service failure.
+
+**Dónde meter Wireshark**
+1. En FW1 / NAT + Stateful
+
+Aquí tiene más valor.
+
+Úsalo para analizar una captura .pcap tomada con tcpdump y demostrar:
+
+handshake TCP;
+cambio de IP/puerto por DNAT;
+flujo de ida y vuelta;
+estado de la conexión;
+diferencia entre tráfico permitido y bloqueado.
+
+Flujo:
+
+tcpdump → guardar .pcap → analizar con Wireshark
+
+LPIC-2 205.2 incluye tcpdump y wireshark para análisis de tráfico y troubleshooting de red.
+
+2. En Troubleshooting
+
+También puede aparecer como herramienta de análisis cuando:
+
+el routing parece correcto;
+el puerto está abierto;
+pero hay que ver qué pasa realmente con los paquetes.
+
+Por ejemplo:
+
+SYN sale
+→ ¿llega a FW1?
+→ ¿se traduce?
+→ ¿llega al Web?
+→ ¿vuelve SYN/ACK?
+
+
+
+
+
+
+
+
+
+
 
 This section contains only incidents that actually occurred during the implementation and validation of the server.
 
@@ -545,6 +837,10 @@ ssh root@10.0.0.49
 [13] 205.3 - Troubleshooting Network Issues
 
 [14] 212.1 - Configuring a router / firewall.
+
+Performing Network Address Translation (NAT): https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)
+
+Matching connection tracking stateful metainformation: https://wiki.nftables.org/wiki-nftables/index.php/Matching_connection_tracking_stateful_metainformation
 
 
 
